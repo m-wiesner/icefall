@@ -2,8 +2,9 @@
 
 This directory reconstructs the paper's multi-talker ASR systems, beginning
 with the representative WavLM Large, length-ordered shuffle-loss experiment.
-Only source and small assets needed to understand and run the systems are
-included; historical experiment directories and checkpoints are not copied.
+Source and assets needed to understand and run the systems are included.
+Historical experiment directories are omitted; one inference-only Brownian
+checkpoint is distributed through Git LFS as described below.
 
 ## Reproduce the paper: five commands
 
@@ -479,6 +480,33 @@ tensorboard --logdir exp --port 6006
 ### 3. Select and average checkpoints
 
 All decode/alignment entry points use Icefall's iteration-checkpoint selection.
+
+### Published Brownian checkpoint
+
+The latest Brownian WavLM-Large model is available through Git LFS at
+`checkpoints/wavlm_large_brownian_checkpoint_134000_model.pt`. It contains the
+`model` state from training update 134,000 and the architecture/constraint
+metadata needed to identify it; optimizer, sampler, scaler, and redundant
+model-average state were removed. Its SHA-256 checksum is:
+
+```text
+3bc98690767f9e94a63c9d955425e153e304ee5af175540c0199f0ecddd9c68e
+```
+
+Fetch it and place it where Icefall's iteration-based decoder expects it:
+
+```bash
+git lfs pull --include='egs/librispeech/MTASR/checkpoints/*.pt'
+mkdir -p exp/shuffle_large_length_brownian_published
+ln -s "$PWD/checkpoints/wavlm_large_brownian_checkpoint_134000_model.pt" \
+  exp/shuffle_large_length_brownian_published/checkpoint-134000.pt
+```
+
+Use `--exp-dir exp/shuffle_large_length_brownian_published --iter 134000
+--avg 1 --use-averaged-model false` with the decode or alignment commands.
+This is the latest available training state, not the checkpoint-72k/average-4
+model used for the validated comparison table below; those four historical
+checkpoint files are no longer available locally.
 For example,
 
 ```text
