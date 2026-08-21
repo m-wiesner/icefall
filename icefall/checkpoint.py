@@ -110,7 +110,11 @@ def load_checkpoint(
     TODO: document it
     """
     logging.info(f"Loading checkpoint from {filename}")
-    checkpoint = torch.load(filename, map_location="cpu")
+    # Full icefall training checkpoints contain trusted local Python metadata
+    # (e.g. pathlib.Path in the saved params), not just tensor weights. PyTorch
+    # 2.6 changed torch.load() to default to weights_only=True, which rejects
+    # that metadata and makes our own resumable checkpoints unloadable.
+    checkpoint = torch.load(filename, map_location="cpu", weights_only=False)
 
     if next(iter(checkpoint["model"])).startswith("module."):
         logging.info("Loading checkpoint saved by DDP")
@@ -163,7 +167,9 @@ def average_checkpoints(
     """
     n = len(filenames)
 
-    avg = torch.load(filenames[0], map_location=device)["model"]
+    avg = torch.load(
+        filenames[0], map_location=device, weights_only=False
+    )["model"]
 
     # Identify shared parameters. Two parameters are said to be shared
     # if they have the same data_ptr
@@ -178,7 +184,9 @@ def average_checkpoints(
     uniqued_names = list(uniqued.values())
 
     for i in range(1, n):
-        state_dict = torch.load(filenames[i], map_location=device)["model"]
+        state_dict = torch.load(
+            filenames[i], map_location=device, weights_only=False
+        )["model"]
         for k in uniqued_names:
             avg[k] += state_dict[k]
 
@@ -421,8 +429,12 @@ def average_checkpoints_with_averaged_model(
       device:
         Move checkpoints to this device before averaging.
     """
-    state_dict_start = torch.load(filename_start, map_location=device)
-    state_dict_end = torch.load(filename_end, map_location=device)
+    state_dict_start = torch.load(
+        filename_start, map_location=device, weights_only=False
+    )
+    state_dict_end = torch.load(
+        filename_end, map_location=device, weights_only=False
+    )
 
     average_period = state_dict_start["average_period"]
 

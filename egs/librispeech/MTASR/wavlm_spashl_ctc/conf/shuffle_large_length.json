@@ -1,0 +1,60 @@
+{
+  "name": "shuffle_large_length",
+  "evidence": {
+    "historical_config": "configs/config14.conf",
+    "icefall_commit": "3f331fe77d056ac5b4ac29d9bbdedcaeaf77519b",
+    "lhotse_commit": "0620d18a79fd3c2d34aab957ac5d19ca2d5ab2f5",
+    "paper_checkpoint": 88000,
+    "paper_checkpoint_average": 4
+  },
+  "data": {
+    "manifest_dir": "data/manifests",
+    "lang_dir": "data/lang_bpe_5000",
+    "max_duration": 400,
+    "max_splices": 10,
+    "max_splice_duration": 50,
+    "max_unique_speakers": 4,
+    "max_speakers": 4,
+    "min_overlap": 0.5,
+    "overlap": 1.0,
+    "drift": 0.5,
+    "max_snr": 30,
+    "reverb": true,
+    "normalize_loudness": true,
+    "allow_self_overlap": false,
+    "sort_strategy": "speech_time"
+  },
+  "model": {
+    "wavlm": "large",
+    "factorized_token_speaker_output": true,
+    "downsample": false,
+    "use_layer_norm": false,
+    "speaker_weight": 1.0
+  },
+  "loss": {
+    "name": "shuffle_ctc",
+    "collar_seconds": 4.0,
+    "collar_samples_at_16khz": 64000,
+    "beam_size": 30,
+    "original_topology": false
+  },
+  "optimization": {
+    "base_lr": 0.00005,
+    "pct_start": 0.15,
+    "total_steps": 200000,
+    "total_max_overlaps": 6000,
+    "duration_increment": 0.00001,
+    "freeze_iters": 2000,
+    "freeze_lr": 0.005
+  },
+  "decode": {
+    "method": "greedy",
+    "blank_weight": 0.0,
+    "speaker_weight": 1.0,
+    "tcpwer_collar_seconds": 5.0,
+    "test_sets": [
+      "synth", "l2m_test_clean", "l2m_test_both", "libri3mix",
+      "ls_test_clean", "ls_test_other"
+    ]
+  }
+}

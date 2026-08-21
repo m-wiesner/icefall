@@ -157,6 +157,8 @@ def get_lattice(
         output_beam=output_beam,
         min_active_states=min_active_states,
         max_active_states=max_active_states,
+        # Preserve arc times for timestamped HLG decoding/alignment.
+        frame_idx_name="frame",
     )
 
     return lattice

@@ -1,0 +1,44 @@
+[project]
+name = "icefall-shuffle-ctc"
+version = "0.1.0"
+description = "Reproducible environment for the Icefall shuffle-CTC recipe"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "dill>=0.3.8",
+  "graphviz>=0.20",
+  "k2 @ https://huggingface.co/csukuangfj/k2/resolve/main/ubuntu-cuda/k2-1.24.4.dev20250304%2Bcuda11.8.torch2.6.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+  "kaldialign>=0.9.1",
+  "kaldifst>=1.7.10",
+  "kaldilm>=1.15",
+  "jiwer==3.0.4",
+  "lhotse==1.31.1",
+  "librosa>=0.11,<0.12",
+  "meeteval>=0.4.3",
+  "numpy>=1.26,<2.1",
+  "pyloudnorm>=0.1.1",
+  "pypinyin==0.50.0",
+  "scipy>=1.12",
+  "sentencepiece>=0.2.0",
+  "simplejson>=3.19",
+  "soundfile>=0.12.1",
+  "tensorboard>=2.16",
+  "torch==2.6.0",
+  "torchaudio==2.6.0",
+  "tqdm>=4.66",
+  "transformers>=5.0",
+  "typeguard>=4.3",
+]
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchaudio = { index = "pytorch" }
