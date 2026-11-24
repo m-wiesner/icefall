@@ -1,0 +1,1069 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-24T01:21:01.061754+00:00",
+  "git_revision": "c571423ca15034f741169363cd282a2b28a7f189",
+  "exp_root": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp",
+  "archive_root": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23",
+  "checkpoint_count": 151,
+  "logical_size_bytes": 1170798059549,
+  "storage_note": "Archive entries are hard links and do not duplicate blocks.",
+  "checkpoints": [
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-28000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-28000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787695180297152000,
+      "inode": 1989468479
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-30000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-30000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787698491821091000,
+      "inode": 1989468480
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-32000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-32000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787701953717998000,
+      "inode": 1989468481
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-34000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-34000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787705369592525000,
+      "inode": 2003558820
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-36000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4/checkpoint-36000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787708739537195000,
+      "inode": 2003558821
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-74000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-74000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787840005694425000,
+      "inode": 1993862329
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-76000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-76000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787843476640005000,
+      "inode": 1993862330
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-78000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-78000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787846857259843000,
+      "inode": 1993862331
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-80000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-80000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787850322836448000,
+      "inode": 1993862332
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-82000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_ami_notsofar_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-82000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787853777401261000,
+      "inode": 1993862337
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-72000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-72000.pt",
+      "size_bytes": 9966745850,
+      "mtime_ns": 1787557198526763000,
+      "inode": 2003676902
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-74000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-74000.pt",
+      "size_bytes": 9966745850,
+      "mtime_ns": 1787562913560534000,
+      "inode": 2003676903
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-76000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-76000.pt",
+      "size_bytes": 9966745850,
+      "mtime_ns": 1787568640276904000,
+      "inode": 2003676904
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-78000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-78000.pt",
+      "size_bytes": 9966745850,
+      "mtime_ns": 1787574393887552000,
+      "inode": 2003676905
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-80000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_parakeet_hires_local_factorized_pause1_a100_accum4/checkpoint-80000.pt",
+      "size_bytes": 9966745850,
+      "mtime_ns": 1787580145007175000,
+      "inode": 2003676906
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_wavlm_large_brownian_8spk/checkpoint-2000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_wavlm_large_brownian_8spk/checkpoint-2000.pt",
+      "size_bytes": 2606122550,
+      "mtime_ns": 1787252117494831000,
+      "inode": 1980449708
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-78000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-78000.pt",
+      "size_bytes": 9805538866,
+      "mtime_ns": 1788272607107587000,
+      "inode": 2000061215
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-80000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-80000.pt",
+      "size_bytes": 9805538866,
+      "mtime_ns": 1788274373991396000,
+      "inode": 2000061216
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-82000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-82000.pt",
+      "size_bytes": 9805538866,
+      "mtime_ns": 1788276136127314000,
+      "inode": 2000061217
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-84000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-84000.pt",
+      "size_bytes": 9805538866,
+      "mtime_ns": 1788277869718098000,
+      "inode": 2000061218
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-86000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_factorized_a100_accum4/checkpoint-86000.pt",
+      "size_bytes": 9805538866,
+      "mtime_ns": 1788279633294115000,
+      "inode": 2000061219
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-62000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-62000.pt",
+      "size_bytes": 9805404314,
+      "mtime_ns": 1788271950801720000,
+      "inode": 1990367541
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-64000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-64000.pt",
+      "size_bytes": 9805404314,
+      "mtime_ns": 1788273748685590000,
+      "inode": 1990367536
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-66000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-66000.pt",
+      "size_bytes": 9805404314,
+      "mtime_ns": 1788275514154475000,
+      "inode": 1990367537
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-68000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-68000.pt",
+      "size_bytes": 9805404314,
+      "mtime_ns": 1788277288118034000,
+      "inode": 1990367538
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-70000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_encoder_only_shuffle_a100_accum4/checkpoint-70000.pt",
+      "size_bytes": 9805404314,
+      "mtime_ns": 1788279085132969000,
+      "inode": 1990367539
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-10000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-10000.pt",
+      "size_bytes": 9805538938,
+      "mtime_ns": 1788297518611906000,
+      "inode": 1993006793
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-12000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-12000.pt",
+      "size_bytes": 9805538938,
+      "mtime_ns": 1788299329344502000,
+      "inode": 1993006794
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-4000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-4000.pt",
+      "size_bytes": 9805535580,
+      "mtime_ns": 1788292004311193000,
+      "inode": 1993006790
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-6000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-6000.pt",
+      "size_bytes": 9805535580,
+      "mtime_ns": 1788293864955137000,
+      "inode": 1993006791
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-8000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_ami_notsofar_parakeet_random_init_factorized_a100_accum4/checkpoint-8000.pt",
+      "size_bytes": 9805535580,
+      "mtime_ns": 1788295697323746000,
+      "inode": 1993006792
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-40000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-40000.pt",
+      "size_bytes": 9966745786,
+      "mtime_ns": 1787516325012632000,
+      "inode": 2000671692
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-42000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-42000.pt",
+      "size_bytes": 9966745786,
+      "mtime_ns": 1787520945213372000,
+      "inode": 2000671693
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-44000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-44000.pt",
+      "size_bytes": 9966745786,
+      "mtime_ns": 1787525641136818000,
+      "inode": 2000671688
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-46000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-46000.pt",
+      "size_bytes": 9966745786,
+      "mtime_ns": 1787530307493536000,
+      "inode": 2000671689
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-48000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4/checkpoint-48000.pt",
+      "size_bytes": 9966745786,
+      "mtime_ns": 1787534952291320000,
+      "inode": 2000671690
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-192000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-192000.pt",
+      "size_bytes": 9966749823,
+      "mtime_ns": 1788000629834291000,
+      "inode": 2000520149
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-194000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-194000.pt",
+      "size_bytes": 9966749823,
+      "mtime_ns": 1788005399946766000,
+      "inode": 2000520144
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-196000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-196000.pt",
+      "size_bytes": 9966749823,
+      "mtime_ns": 1788010199747519000,
+      "inode": 2000520145
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-198000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-198000.pt",
+      "size_bytes": 9966749823,
+      "mtime_ns": 1788014957697408000,
+      "inode": 2000520146
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-200000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_parakeet_hires_local_factorized_a100_accum4_combined_bpe/checkpoint-200000.pt",
+      "size_bytes": 9966749887,
+      "mtime_ns": 1788019744775763000,
+      "inode": 2000520147
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-12000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-12000.pt",
+      "size_bytes": 5014409614,
+      "mtime_ns": 1790120364664025000,
+      "inode": 1990550477
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-14000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-14000.pt",
+      "size_bytes": 5014409614,
+      "mtime_ns": 1790124111425813000,
+      "inode": 1990550472
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-16000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-16000.pt",
+      "size_bytes": 5014409614,
+      "mtime_ns": 1790127952131473000,
+      "inode": 1990550473
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-18000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-18000.pt",
+      "size_bytes": 5014409614,
+      "mtime_ns": 1790131745122361000,
+      "inode": 1990550474
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-20000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_bce_a100x4_noaccum/checkpoint-20000.pt",
+      "size_bytes": 5014409614,
+      "mtime_ns": 1790135562984121000,
+      "inode": 1990550475
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-192000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-192000.pt",
+      "size_bytes": 5016953668,
+      "mtime_ns": 1790506123490464000,
+      "inode": 1995072575
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-194000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-194000.pt",
+      "size_bytes": 5016953668,
+      "mtime_ns": 1790510013720459000,
+      "inode": 1995072570
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-196000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-196000.pt",
+      "size_bytes": 5016953668,
+      "mtime_ns": 1790513892685181000,
+      "inode": 1995072571
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-198000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-198000.pt",
+      "size_bytes": 5016953668,
+      "mtime_ns": 1790517742810936000,
+      "inode": 1995072572
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-200000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_fifo_powerset_ce_a100x4_noaccum/checkpoint-200000.pt",
+      "size_bytes": 5016953668,
+      "mtime_ns": 1790521625832387000,
+      "inode": 1995072573
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-102000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-102000.pt",
+      "size_bytes": 5096347900,
+      "mtime_ns": 1790664095705571000,
+      "inode": 1996175858
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-104000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-104000.pt",
+      "size_bytes": 5096347900,
+      "mtime_ns": 1790674674332904000,
+      "inode": 1996175859
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-106000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-106000.pt",
+      "size_bytes": 5096347900,
+      "mtime_ns": 1790685305508367000,
+      "inode": 1996175860
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-108000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-108000.pt",
+      "size_bytes": 5096347900,
+      "mtime_ns": 1790695915801350000,
+      "inode": 1996175861
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-110000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_segment_factor_softmask_v100x8_accum3/checkpoint-110000.pt",
+      "size_bytes": 5096347900,
+      "mtime_ns": 1790706592456868000,
+      "inode": 1996175862
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-90000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-90000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790131910919480000,
+      "inode": 1996320736
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-92000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-92000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790144139698593000,
+      "inode": 1988550194
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-94000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-94000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790156378558535000,
+      "inode": 1988550195
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-96000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-96000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790168551577694000,
+      "inode": 1988550196
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-98000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-98000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790180800892832000,
+      "inode": 1988550197
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-100000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-100000.pt",
+      "size_bytes": 5096414686,
+      "mtime_ns": 1790263375766472000,
+      "inode": 1986938524
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-92000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-92000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790215253982469000,
+      "inode": 1986938520
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-94000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-94000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790227199263909000,
+      "inode": 1986938521
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-96000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-96000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790239194657815000,
+      "inode": 1986938522
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-98000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/checkpoint-98000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790251288141990000,
+      "inode": 1986938523
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/pinned/checkpoint-72000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/pinned/checkpoint-72000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1790095166228761000,
+      "inode": 2004604084
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-68000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-68000.pt",
+      "size_bytes": 5014409806,
+      "mtime_ns": 1790301540199526000,
+      "inode": 1999915875
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-70000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-70000.pt",
+      "size_bytes": 5014409806,
+      "mtime_ns": 1790317041706795000,
+      "inode": 2001028529
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-72000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-72000.pt",
+      "size_bytes": 5014409806,
+      "mtime_ns": 1790332709907693000,
+      "inode": 2001028530
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-74000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-74000.pt",
+      "size_bytes": 5014409806,
+      "mtime_ns": 1790348463458304000,
+      "inode": 2001028531
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-76000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/checkpoint-76000.pt",
+      "size_bytes": 5014409806,
+      "mtime_ns": 1790364192211342000,
+      "inode": 2001028532
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/pinned/checkpoint-60000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4/pinned/checkpoint-60000.pt",
+      "size_bytes": 5014409806,
+      "mtime_ns": 1790248561528200000,
+      "inode": 2000212154
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-192000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-192000.pt",
+      "size_bytes": 10294833751,
+      "mtime_ns": 1789740110710214000,
+      "inode": 1993599118
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-194000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-194000.pt",
+      "size_bytes": 10294833751,
+      "mtime_ns": 1789742648047351000,
+      "inode": 1993599119
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-196000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-196000.pt",
+      "size_bytes": 10294833751,
+      "mtime_ns": 1789745258955177000,
+      "inode": 1993599114
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-198000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-198000.pt",
+      "size_bytes": 10294833751,
+      "mtime_ns": 1789747800446712000,
+      "inode": 1993599115
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-200000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_a100x2_accum4_maxlr5e-6/checkpoint-200000.pt",
+      "size_bytes": 10294833751,
+      "mtime_ns": 1789750412223716000,
+      "inode": 1993599116
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-34000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-34000.pt",
+      "size_bytes": 10294831426,
+      "mtime_ns": 1789819008787886000,
+      "inode": 1992292330
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-36000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-36000.pt",
+      "size_bytes": 10294831426,
+      "mtime_ns": 1789821922873811000,
+      "inode": 1992292331
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-38000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-38000.pt",
+      "size_bytes": 10294831426,
+      "mtime_ns": 1789824892867666000,
+      "inode": 1992292326
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-40000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-40000.pt",
+      "size_bytes": 10294831426,
+      "mtime_ns": 1789827886884479000,
+      "inode": 1992292327
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-42000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_a100x2_accum4_maxlr5e-6/checkpoint-42000.pt",
+      "size_bytes": 10294831426,
+      "mtime_ns": 1789830796395256000,
+      "inode": 1992292328
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-172000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-172000.pt",
+      "size_bytes": 10294834135,
+      "mtime_ns": 1790087934955232000,
+      "inode": 1992469167
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-174000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-174000.pt",
+      "size_bytes": 10294834135,
+      "mtime_ns": 1790090486483089000,
+      "inode": 1992469162
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-176000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-176000.pt",
+      "size_bytes": 10294834135,
+      "mtime_ns": 1790093093038876000,
+      "inode": 1992469163
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-178000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-178000.pt",
+      "size_bytes": 10294834135,
+      "mtime_ns": 1790095748171041000,
+      "inode": 1992469164
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-180000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_shuffle_segment_factor_softmask_a100x2_accum4_maxlr5e-6/checkpoint-180000.pt",
+      "size_bytes": 10294834135,
+      "mtime_ns": 1790098258901821000,
+      "inode": 1992469165
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-42000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-42000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1789468084135978000,
+      "inode": 1984989793
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-44000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-44000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1789471537121753000,
+      "inode": 1984989788
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-46000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-46000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1789474993196782000,
+      "inode": 1984989789
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-48000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-48000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1789478386863275000,
+      "inode": 1984989790
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-50000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_whisper_large_v3_turbo_spashl_a100x2_accum4_maxlr5e-6/checkpoint-50000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1789481870982168000,
+      "inode": 1984989791
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-32000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-32000.pt",
+      "size_bytes": 1125064838,
+      "mtime_ns": 1787621366069222000,
+      "inode": 1995703881
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-34000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-34000.pt",
+      "size_bytes": 1125064838,
+      "mtime_ns": 1787625840778932000,
+      "inode": 1995703882
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-36000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-36000.pt",
+      "size_bytes": 1125064838,
+      "mtime_ns": 1787630255512621000,
+      "inode": 2001033280
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-38000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-38000.pt",
+      "size_bytes": 1125064838,
+      "mtime_ns": 1787634712420512000,
+      "inode": 2001033281
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-40000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/fastmss_yodas_en_zipformer_factorized_v100_accum2_combined_bpe/checkpoint-40000.pt",
+      "size_bytes": 1125064838,
+      "mtime_ns": 1787639161768116000,
+      "inode": 2001033282
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_shuffle_large_length/checkpoint-82000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_shuffle_large_length/checkpoint-82000.pt",
+      "size_bytes": 9825709946,
+      "mtime_ns": 1786990243444860000,
+      "inode": 1980619767
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_shuffle_large_length/checkpoint-84000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_shuffle_large_length/checkpoint-84000.pt",
+      "size_bytes": 9825709946,
+      "mtime_ns": 1786991424101819000,
+      "inode": 1980619768
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_shuffle_large_length/checkpoint-86000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_shuffle_large_length/checkpoint-86000.pt",
+      "size_bytes": 9825709946,
+      "mtime_ns": 1786992621603702000,
+      "inode": 1980619769
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_shuffle_large_length/checkpoint-88000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_shuffle_large_length/checkpoint-88000.pt",
+      "size_bytes": 9825709946,
+      "mtime_ns": 1786993841748490000,
+      "inode": 1980619764
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_shuffle_large_length/checkpoint-90000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_shuffle_large_length/checkpoint-90000.pt",
+      "size_bytes": 9825709946,
+      "mtime_ns": 1786995031622489000,
+      "inode": 1980619765
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_highres_recovery_50hz/checkpoint-2000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_highres_recovery_50hz/checkpoint-2000.pt",
+      "size_bytes": 5011620482,
+      "mtime_ns": 1787120461392769000,
+      "inode": 1986162444
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-192000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-192000.pt",
+      "size_bytes": 9945987912,
+      "mtime_ns": 1787129914447209000,
+      "inode": 1980482535
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-194000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-194000.pt",
+      "size_bytes": 9945987912,
+      "mtime_ns": 1787131170489043000,
+      "inode": 1980482530
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-196000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-196000.pt",
+      "size_bytes": 9945987912,
+      "mtime_ns": 1787132423547072000,
+      "inode": 1980482531
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-198000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-198000.pt",
+      "size_bytes": 9945987912,
+      "mtime_ns": 1787133633868955000,
+      "inode": 1980482543
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-200000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_block18_fp32_frontend/checkpoint-200000.pt",
+      "size_bytes": 9945987912,
+      "mtime_ns": 1787134917571771000,
+      "inode": 1980482533
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm/checkpoint-32000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm/checkpoint-32000.pt",
+      "size_bytes": 9945541190,
+      "mtime_ns": 1787017407622934000,
+      "inode": 1983631631
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm/checkpoint-34000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm/checkpoint-34000.pt",
+      "size_bytes": 9945541190,
+      "mtime_ns": 1787018329983116000,
+      "inode": 1983631632
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm/checkpoint-36000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm/checkpoint-36000.pt",
+      "size_bytes": 9945541190,
+      "mtime_ns": 1787019254916821000,
+      "inode": 1983631633
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm/checkpoint-38000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm/checkpoint-38000.pt",
+      "size_bytes": 9945541190,
+      "mtime_ns": 1787020210522880000,
+      "inode": 1983631634
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm/checkpoint-40000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm/checkpoint-40000.pt",
+      "size_bytes": 9945541190,
+      "mtime_ns": 1787021164538615000,
+      "inode": 1983631635
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-192000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-192000.pt",
+      "size_bytes": 9945544672,
+      "mtime_ns": 1787126265415378000,
+      "inode": 1982714629
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-194000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-194000.pt",
+      "size_bytes": 9945544672,
+      "mtime_ns": 1787127489374298000,
+      "inode": 1982714630
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-196000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-196000.pt",
+      "size_bytes": 9945544672,
+      "mtime_ns": 1787128713532210000,
+      "inode": 1982714631
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-198000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-198000.pt",
+      "size_bytes": 9945544672,
+      "mtime_ns": 1787129890209338000,
+      "inode": 1982714632
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-200000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_spashl_learned_phase_layer_norm_fp32_frontend/checkpoint-200000.pt",
+      "size_bytes": 9945544736,
+      "mtime_ns": 1787131139877033000,
+      "inode": 1982714633
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-192000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-192000.pt",
+      "size_bytes": 9844936324,
+      "mtime_ns": 1787135640770778000,
+      "inode": 1988315465
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-194000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-194000.pt",
+      "size_bytes": 9844936324,
+      "mtime_ns": 1787136960844793000,
+      "inode": 1988315460
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-196000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-196000.pt",
+      "size_bytes": 9844936324,
+      "mtime_ns": 1787138286974842000,
+      "inode": 1988315461
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-198000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-198000.pt",
+      "size_bytes": 9844936324,
+      "mtime_ns": 1787139562301582000,
+      "inode": 1988315462
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-200000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/parakeet_token_only_learned_phase_fp32_frontend/checkpoint-200000.pt",
+      "size_bytes": 9844936388,
+      "mtime_ns": 1787140930383343000,
+      "inode": 1988315463
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_4gpu_400k/checkpoint-28000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_4gpu_400k/checkpoint-28000.pt",
+      "size_bytes": 5096346270,
+      "mtime_ns": 1787143996294126000,
+      "inode": 1994065472
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_4gpu_400k/checkpoint-30000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_4gpu_400k/checkpoint-30000.pt",
+      "size_bytes": 5096346270,
+      "mtime_ns": 1787152318215809000,
+      "inode": 1994065473
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_4gpu_400k/checkpoint-32000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_4gpu_400k/checkpoint-32000.pt",
+      "size_bytes": 5096346270,
+      "mtime_ns": 1787160562043049000,
+      "inode": 1994065474
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_4gpu_400k/checkpoint-34000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_4gpu_400k/checkpoint-34000.pt",
+      "size_bytes": 5096346270,
+      "mtime_ns": 1787168987855420000,
+      "inode": 1994065475
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_4gpu_400k/checkpoint-36000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_4gpu_400k/checkpoint-36000.pt",
+      "size_bytes": 5096346270,
+      "mtime_ns": 1787210701832722000,
+      "inode": 1989570313
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian/checkpoint-126000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian/checkpoint-126000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787201619824174000,
+      "inode": 2000237176
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian/checkpoint-128000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian/checkpoint-128000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787205170263131000,
+      "inode": 2000237177
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian/checkpoint-130000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian/checkpoint-130000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787208763838677000,
+      "inode": 1993389438
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian/checkpoint-132000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian/checkpoint-132000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787212249737577000,
+      "inode": 1993389439
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian/checkpoint-134000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian/checkpoint-134000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787215695266207000,
+      "inode": 1993389440
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian_factorized/checkpoint-42000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian_factorized/checkpoint-42000.pt",
+      "size_bytes": 5096346910,
+      "mtime_ns": 1787730321466719000,
+      "inode": 1992031548
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian_factorized/checkpoint-44000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian_factorized/checkpoint-44000.pt",
+      "size_bytes": 5096346910,
+      "mtime_ns": 1787736749968561000,
+      "inode": 1992031549
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian_factorized/checkpoint-46000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian_factorized/checkpoint-46000.pt",
+      "size_bytes": 5096346910,
+      "mtime_ns": 1787743148224103000,
+      "inode": 1992031550
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian_factorized/checkpoint-48000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian_factorized/checkpoint-48000.pt",
+      "size_bytes": 5096346910,
+      "mtime_ns": 1787749522071698000,
+      "inode": 1994063942
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_brownian_factorized/checkpoint-50000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_brownian_factorized/checkpoint-50000.pt",
+      "size_bytes": 5096346910,
+      "mtime_ns": 1787755909076028000,
+      "inode": 1994063943
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_paper/checkpoint-126000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_paper/checkpoint-126000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787203092746260000,
+      "inode": 1999949043
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_paper/checkpoint-128000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_paper/checkpoint-128000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787206753838812000,
+      "inode": 1999949044
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_paper/checkpoint-130000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_paper/checkpoint-130000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787210405510543000,
+      "inode": 1999949045
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_paper/checkpoint-132000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_paper/checkpoint-132000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787213956731548000,
+      "inode": 1999949046
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_large_length_paper/checkpoint-134000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_large_length_paper/checkpoint-134000.pt",
+      "size_bytes": 5096348190,
+      "mtime_ns": 1787217467327189000,
+      "inode": 1999949047
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_only_large_length/checkpoint-100000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_only_large_length/checkpoint-100000.pt",
+      "size_bytes": 5096279204,
+      "mtime_ns": 1787125376824464000,
+      "inode": 2001952800
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_only_large_length/checkpoint-102000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_only_large_length/checkpoint-102000.pt",
+      "size_bytes": 5096279204,
+      "mtime_ns": 1787129087605144000,
+      "inode": 2001952801
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_only_large_length/checkpoint-104000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_only_large_length/checkpoint-104000.pt",
+      "size_bytes": 5096279204,
+      "mtime_ns": 1787132864669068000,
+      "inode": 1981370648
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_only_large_length/checkpoint-106000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_only_large_length/checkpoint-106000.pt",
+      "size_bytes": 5096279204,
+      "mtime_ns": 1787136673760705000,
+      "inode": 1981370649
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/shuffle_only_large_length/checkpoint-98000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/shuffle_only_large_length/checkpoint-98000.pt",
+      "size_bytes": 5096277294,
+      "mtime_ns": 1787121595649924000,
+      "inode": 2001952799
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/teacher_snapshots/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-32000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/teacher_snapshots/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-32000.pt",
+      "size_bytes": 5096412766,
+      "mtime_ns": 1789771428509051000,
+      "inode": 1979722684
+    },
+    {
+      "source": "/expscratch/mwiesner/shuffle/icefall-shuffle/egs/librispeech/MTASR/exp/whisper_factorized_repro_82000/checkpoint-82000.pt",
+      "archive": "/expscratch/mwiesner/shuffle/release/experimental_models_2026-11-23/whisper_factorized_repro_82000/checkpoint-82000.pt",
+      "size_bytes": 10294998486,
+      "mtime_ns": 1787853777401261000,
+      "inode": 1993862337
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+#SBATCH --job-name=mtasr-wavlm-ts-fmyod
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:v100:4
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=256G
+#SBATCH --time=7-00:00:00
+#SBATCH --output=exp/slurm/%x-%j.out
+#SBATCH --error=exp/slurm/%x-%j.err
+
+set -euo pipefail
+
+recipe_dir=${RECIPE_DIR:-$SLURM_SUBMIT_DIR}
+cd "$recipe_dir"
+source activate.sh
+
+export TORCH_HOME=${TORCH_HOME:-/expscratch/mwiesner/shuffle/.cache/torch}
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export LD_LIBRARY_PATH="$recipe_dir/.venv/lib/python3.11/site-packages/torch/lib:$recipe_dir/.venv/lib/python3.11/site-packages/k2/lib64:/expscratch/mwiesner/shuffle/.tools/cuda118/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+exp_dir=${EXP_DIR:-exp/fastmss_yodas_en_wavlm_large_teacher_token_fifo_spashl_factorized_v100x4_accum4}
+teacher_checkpoint=${TEACHER_CHECKPOINT:-exp/teacher_snapshots/fastmss_yodas_en_wavlm_large_shuffle_v100x4_accum4/checkpoint-32000.pt}
+start_batch=${START_BATCH:-0}
+max_duration=${MAX_DURATION:-180}
+world_size=${WORLD_SIZE:-4}
+master_port=${MASTER_PORT:-15385}
+total_steps=${TOTAL_STEPS:-200000}
+freeze_iters=${FREEZE_ITERS:-2000}
+skip_validation=${SKIP_VALIDATION:-false}
+num_cuts_for_bins_estimate=${NUM_CUTS_FOR_BINS_ESTIMATE:-10000}
+mkdir -p exp/slurm "$exp_dir" "$TORCH_HOME"
+
+python wavlm_spashl_ctc/train.py \
+  --world-size "$world_size" \
+  --master-port "$master_port" \
+  --start-batch "$start_batch" \
+  --exp-dir "$exp_dir" \
+  --train-cut-manifests \
+    data/manifests/fastmss_librispeech/shard1_cuts_groups_pause1.0.jsonl.gz \
+    data/manifests/fastmss_librispeech/shard2_cuts_groups_pause1.0.jsonl.gz \
+    data/manifests/fastmss_librispeech/shard3_cuts_groups_pause1.0.jsonl.gz \
+    data/manifests/fastmss_librispeech/shard4_cuts_groups_pause1.0.jsonl.gz \
+  --train-yodas-scheme-dirs \
+    /expscratch/mwiesner/shuffle/yodas_shar_filtered/en_judge8_der0069_doverlap \
+  --yodas-hypothesis doverlap \
+  --yodas-group-max-pause 1.0 \
+  --yodas-group-max-duration 60 \
+  --yodas-min-speakers 2 \
+  --yodas-max-speakers 8 \
+  --yodas-mix-weight 0.5 \
+  --bpe-model data/lang_bpe_5000_librispeech_yodas_en/bpe.model \
+  --lang-dir data/lang_bpe_5000_librispeech_yodas_en \
+  --use-large true \
+  --frozen-token-teacher-checkpoint "$teacher_checkpoint" \
+  --teacher-local-mask-window-duration 2.0 \
+  --teacher-local-mask-boundary-collar 5.0 \
+  --speaker-branch true \
+  --factorized-token-speaker-output true \
+  --factorized-ctc-loss true \
+  --downsample false \
+  --use-layer-norm false \
+  --max-num-spks 8 \
+  --max-overlap 4 \
+  --max-train-cut-duration 80 \
+  --collar 32000 \
+  --edge-collar 0 \
+  --interval-model brownian_bridge \
+  --beam-size 10 \
+  --total-max-overlaps 6000 \
+  --base-lr 0.00005 \
+  --pct-start 0.15 \
+  --total-steps "$total_steps" \
+  --freeze-iters "$freeze_iters" \
+  --freeze-lr 0.005 \
+  --speaker-weight 1.0 \
+  --valid-interval 3000 \
+  --skip-validation "$skip_validation" \
+  --original-topo false \
+  --sort-strategy start_time \
+  --max-duration "$max_duration" \
+  --accum-grad 4 \
+  --num-buckets 100 \
+  --num-cuts-for-bins-estimate "$num_cuts_for_bins_estimate" \
+  --sampler-buffer-size 20000 \
+  --num-workers 6 \
+  --use-fp16 true \
+  --save-every-n 2000 \
+  --keep-last-k 5 \
+  --average-period 200 \
+  --tensorboard true \
+  --seed 42

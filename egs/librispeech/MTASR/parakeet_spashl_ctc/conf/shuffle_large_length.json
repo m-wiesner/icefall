@@ -1,0 +1,27 @@
+{
+  "name": "parakeet_tdt_v3_shuffle_large_length",
+  "encoder": {
+    "model_id": "nvidia/parakeet-tdt-0.6b-v3",
+    "hidden_size": 1024,
+    "native_subsampling": 8,
+    "upsample_factor": 4,
+    "effective_frame_shift_ms": 20,
+    "upsample_mode": "linear"
+  },
+  "labels": {
+    "tokenizer": "data/lang_bpe_5000/bpe.model",
+    "max_speakers": 4,
+    "factorized_token_speaker_output": true
+  },
+  "loss": {
+    "name": "shuffle_ctc",
+    "interval_model": "fixed",
+    "collar_samples_at_16khz": 64000,
+    "beam_size": 30
+  },
+  "optimization": {
+    "initial_max_duration": 80,
+    "total_steps": 200000,
+    "freeze_iters": 2000
+  }
+}

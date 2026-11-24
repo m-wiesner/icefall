@@ -711,6 +711,64 @@ preserved under `vendor/`.
 The sampler still needs to be integrated cleanly with upstream Lhotse before
 this recipe is ready for an Icefall pull request.
 
+### Whisper encoder Shuffle-CTC
+
+`whisper_spashl_ctc/train.py` reuses the pre-trained Whisper encoder without
+its decoder and attaches the same factorized token and speaker heads used by
+the WavLM and Parakeet recipes.  Waveforms are converted with Whisper's exact
+log-Mel normalization and padded to its fixed 30-second context.  The model
+returns the true unpadded 50-Hz lengths, so padded frames are excluded from the
+Shuffle graph intersection.  The heads are compatible with
+`--factorized-ctc-loss true` and do not materialize token-by-speaker logits.
+
+Prepare bounded FastMSS manifests without copying audio or splitting an
+utterance:
+
+```bash
+for shard in 1 2 3 4; do
+  python local/rechunk_supervision_groups.py \
+    --input data/manifests/fastmss_librispeech/shard${shard}_cuts_groups_pause1.0.jsonl.gz \
+    --output data/manifests/fastmss_librispeech/shard${shard}_cuts_groups_pause1.0_max30.jsonl.gz \
+    --max-duration 30 --max-pause 1.0 --oversize-policy drop
+done
+```
+
+Overlap-connected components longer than 30 seconds cannot be divided without
+word alignments.  They are reported in the adjacent summary JSON and dropped;
+all other supervisions occur exactly once.  YODAS groups are generated lazily
+with `--yodas-group-max-duration 30`.
+
+The one-A100 combined-data launcher is:
+
+```bash
+sbatch slurm/train_fastmss_yodas_whisper_factorized_a100_accum4.sbatch
+```
+
+Prepare the real meeting corpora used by the launcher with:
+
+```bash
+source activate.sh
+python local/prepare_ami_notsofar.py \
+  --ami-root /export/common/data/corpora/amicorpus \
+  --notsofar-root /export/common/data/corpora/ASR/NOTSOFAR
+```
+
+This prepares AMI SDM using the `full-corpus-asr` partition and every locally
+available NOTSOFAR SDM split. It writes both recording-level CutSets and
+normalized, alignment-aware 30-second CutSets under
+`data/manifests/real_meetings/`. The training launcher includes AMI train and
+NOTSOFAR train. Evaluation CutSets are:
+
+- `data/manifests/real_meetings/ami/ami_sdm_dev_max30_normalized.jsonl.gz`
+- `data/manifests/real_meetings/ami/ami_sdm_test_max30_normalized.jsonl.gz`
+- `data/manifests/real_meetings/notsofar/notsofar_sdm_dev_240415.2_dev_with_GT_max30_normalized.jsonl.gz`
+- `data/manifests/real_meetings/notsofar/notsofar_sdm_test_240629.1_eval_small_with_GT_max30_normalized.jsonl.gz`
+- `data/manifests/sbcsae/sbcsae_cuts_asr_aligned_conversations_max8spk_eval30s_normalized.jsonl.gz`
+
+The NOTSOFAR version strings reflect the corpus actually installed at the
+paths above. No audio is copied: every CutSet retains references to the source
+waveforms.
+
 Training checkpoints use a distributional resume policy for the infinite
 on-the-fly cut stream. They restore the model, optimizer, scheduler, scaler,
 and the cut generator's compact curriculum counter, but deliberately discard

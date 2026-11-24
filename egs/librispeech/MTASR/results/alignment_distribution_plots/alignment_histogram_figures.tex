@@ -1,0 +1,175 @@
+% Preamble requirements (add once in the main document):
+%   \usepackage{pgfplots}
+%   \usepgfplotslibrary{groupplots}
+%
+% Change this one path if the data directory is stored elsewhere.
+\begingroup
+\def\alignmenthistdatadir{alignment_histogram_data}
+% All compatibility and style settings are local to this group.
+\pgfplotsset{
+  compat=1.17,
+  alignment histogram axis/.style={
+    width=0.47\textwidth,
+    height=0.34\textwidth,
+    ymin=0,
+    ylabel={Fraction of observations},
+    grid=major,
+    grid style={gray!20},
+    axis on top,
+    tick label style={font=\small},
+    label style={font=\small},
+    title style={font=\small},
+    legend style={font=\small, draw=none, fill=none},
+  },
+  alignment nsf histogram/.style={
+    ybar interval,
+    draw=blue!70!black,
+    fill=blue!55,
+    fill opacity=0.35,
+    line width=0.7pt,
+  },
+  alignment ami histogram/.style={
+    ybar interval,
+    draw=orange!90!black,
+    fill=orange!70,
+    fill opacity=0.35,
+    line width=0.7pt,
+  },
+}
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}
+    \begin{groupplot}[
+      group style={group size=2 by 1, horizontal sep=1.15cm},
+      alignment histogram axis,
+    ]
+      \nextgroupplot[
+        title={(a) Word-level IoU},
+        xlabel={Word IoU (\%)},
+        xmin=0, xmax=100,
+        legend pos=north west,
+      ]
+      \addplot[alignment nsf histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/notsofar_eval_word_iou.dat};
+      \addlegendentry{NOTSOFAR Eval ($N=41{,}943$)}
+      \addplot[alignment ami histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/ami_eval_word_iou.dat};
+      \addlegendentry{AMI Eval ($N=90{,}149$)}
+
+      \nextgroupplot[
+        title={(b) Mean IoU per recording},
+        xlabel={Recording mean IoU (\%)},
+        xmin=50, xmax=76,
+        legend pos=north west,
+      ]
+      \addplot[alignment nsf histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/notsofar_eval_recording_iou.dat};
+      \addlegendentry{NOTSOFAR Eval ($N=29$)}
+      \addplot[alignment ami histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/ami_eval_recording_iou.dat};
+      \addlegendentry{AMI Eval ($N=16$)}
+    \end{groupplot}
+  \end{tikzpicture}
+  \caption{Normalized histograms of word-level IoU and recording-level mean
+  IoU. The two corpora use identical bin edges within each panel. Higher is
+  better.}
+  \label{fig:alignment-iou-histograms}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}
+    \begin{groupplot}[
+      group style={group size=2 by 1, horizontal sep=1.15cm},
+      alignment histogram axis,
+    ]
+      \nextgroupplot[
+        title={(a) Word-level boundary error},
+        xlabel={Word boundary error (ms)},
+        xmode=log,
+        xmin=0.1, xmax=20000,
+        legend pos=north east,
+      ]
+      \addplot[alignment nsf histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/notsofar_eval_word_boundary.dat};
+      \addlegendentry{NOTSOFAR Eval}
+      \addplot[alignment ami histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/ami_eval_word_boundary.dat};
+      \addlegendentry{AMI Eval}
+
+      \nextgroupplot[
+        title={(b) Mean boundary error per recording},
+        xlabel={Recording mean boundary error (ms)},
+        xmin=40, xmax=190,
+        legend pos=north east,
+      ]
+      \addplot[alignment nsf histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/notsofar_eval_recording_boundary.dat};
+      \addlegendentry{NOTSOFAR Eval}
+      \addplot[alignment ami histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/ami_eval_recording_boundary.dat};
+      \addlegendentry{AMI Eval}
+    \end{groupplot}
+  \end{tikzpicture}
+  \caption{Normalized histograms of word-level and recording-level boundary
+  error. A word's boundary error is the mean absolute error of its onset and
+  offset; each recording-level observation averages that value over one
+  recording. The word-level panel uses logarithmically spaced bins, with exact
+  zeros included in the $0.1$\,ms bin. Lower is better.}
+  \label{fig:alignment-boundary-histograms}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}
+    \begin{groupplot}[
+      group style={group size=2 by 1, horizontal sep=1.15cm},
+      alignment histogram axis,
+    ]
+      \nextgroupplot[
+        title={(a) Word-level inversion contribution},
+        xlabel={Half inversion degree per word},
+        xmin=0, xmax=23,
+        legend pos=north east,
+      ]
+      \addplot[alignment nsf histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/notsofar_eval_word_kendall.dat};
+      \addlegendentry{NOTSOFAR Eval}
+      \addplot[alignment ami histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/ami_eval_word_kendall.dat};
+      \addlegendentry{AMI Eval}
+
+      \nextgroupplot[
+        title={(b) Kendall distance per recording},
+        xlabel={Inversions per word},
+        xmin=0, xmax=0.5,
+        legend pos=north east,
+      ]
+      \addplot[alignment nsf histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/notsofar_eval_recording_kendall.dat};
+      \addlegendentry{NOTSOFAR Eval}
+      \addplot[alignment ami histogram]
+        table[x=edge,y=probability]
+        {\alignmenthistdatadir/ami_eval_recording_kendall.dat};
+      \addlegendentry{AMI Eval}
+    \end{groupplot}
+  \end{tikzpicture}
+  \caption{Normalized histograms of word-level and recording-level ordering
+  error. Since Kendall distance is a sequence statistic, each word receives
+  half the number of inversions involving it; its mean within a recording is
+  exactly the reported inversions-per-word metric. Lower is better.}
+  \label{fig:alignment-kendall-histograms}
+\end{figure*}
+\endgroup
