@@ -1,0 +1,4 @@
+# MFA 3.4.2 defaults are beam=10 and retry_beam=40.  The wider retry is
+# intended to recover difficult but otherwise valid forced alignments.
+beam: 40
+retry_beam: 160
