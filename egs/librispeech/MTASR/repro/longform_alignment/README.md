@@ -18,10 +18,10 @@ diarization, and pruning experiments in the archive branch.
 
 The speaker-attributed checkpoint used for the paper is intentionally not
 stored in Git.  A compact 1,282,524,827-byte inference checkpoint was exported
-from the exact 5,096,412,766-byte training checkpoint and archived at the
-location recorded in `artifacts.json`; both immutable SHA-256 values are
-recorded. Put a downloaded copy at the recorded destination, or pass
-`--checkpoint`. The language model files are small and versioned with this
+from the exact 5,096,412,766-byte training checkpoint and published in the
+[Hugging Face model repository](https://huggingface.co/mshwiesner/longform-multitalker-alignment).
+`artifacts.json` pins the immutable Hub revision and records SHA-256 values for
+both archives. The language model files are small and versioned with this
 branch. Raw AMI, NOTSOFAR, FastMSS, and YODAS audio must be obtained under
 their respective licenses.
 
@@ -32,6 +32,9 @@ From `egs/librispeech/MTASR`:
 ```bash
 ./install.sh
 source activate.sh
+
+# Download the revision-pinned paper checkpoint and verify its SHA-256.
+python repro/longform_alignment/reproduce.py fetch-model
 
 # Shows every required model, BPE, manifest, and reference file.
 python repro/longform_alignment/reproduce.py check --hash-checkpoint

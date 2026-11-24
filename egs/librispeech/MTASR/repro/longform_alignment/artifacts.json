@@ -3,7 +3,9 @@
   "paper_model": {
     "name": "WavLM Large 8-speaker Shuffle/SpAShl checkpoint 72000",
     "destination": "exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/pinned/checkpoint-72000.pt",
-    "download_url": null,
+    "download_url": "https://huggingface.co/mshwiesner/longform-multitalker-alignment/resolve/db306e6a127becd3a91aeec77b3aef560d005ec4/wavlm8spk-checkpoint-72000.pt",
+    "model_card_url": "https://huggingface.co/mshwiesner/longform-multitalker-alignment",
+    "huggingface_revision": "db306e6a127becd3a91aeec77b3aef560d005ec4",
     "release_artifact": {
       "size_bytes": 1282524827,
       "sha256": "9cb800a1c6584bd5bbfc14359dcf4f767e87f3ea9b45ca4369588221dbb5db21",
