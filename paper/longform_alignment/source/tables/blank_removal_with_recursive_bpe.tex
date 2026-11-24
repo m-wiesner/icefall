@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{Evaluation results on the \texttt{NOTSOFAR DEV} benchmark showing performance across different percentages of removed tokens at \texttt{max\_length} 4. See Table \ref{tab:max_length_sweep}.}
+\label{tab:notsofar_dev_removed}
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Tgt\%} & \textbf{Actual \%} & \textbf{IoU (\%)} $\uparrow$ & \textbf{BE (ms)} $\downarrow$ & \textbf{$\tau$} (\%) $\downarrow$ \\
+\midrule
+0  & 0.0  & \textbf{60.1} & \textbf{112} & \textbf{12.4} \\
+20 & 17.7 & \textbf{60.1} & 113          & 12.5          \\
+40 & 32.7 & 60.0          & 115          & 12.5          \\
+60 & 48.8 & 57.9          & 129          & 13.0          \\
+70 & 58.0 & 56.0          & 146          & 13.5          \\
+\bottomrule
+\end{tabular}
+\end{table}

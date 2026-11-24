@@ -1,0 +1,263 @@
+Our method involves tackling three subtasks needed for multi-talker forced alignment: (i) alignment algorithms with speaker labels, (ii) fast and memory efficient long-form alignment, and (iii) speaker attribution when the utterance group has no speaker labels.
+\vspace{-2mm}
+\subsection{Alignment with Speaker Labels Using Shuffles}
+\label{sec:SpAShl}
+We follow~\cite{wiesner2026modeling}, using the shuffle product of multi-talker transcripts as the alignment graph for single-pass forced alignment, and provide only a high-level summary here. Let ${y^i} = y_1^i, \ldots, y_N^i$ be the token sequence for utterance $u^i \in \mathcal{G}$ and ${y^i}^\prime = (y_1^i,s^i), \ldots, (y_N^i,s^i)$ its speaker-attributed version. Then $\mathcal{Y} = \bigshuffle\limits_{i=1}^k {y^i}$ is the shuffle product and $\mathcal{Y^\prime} = \bigshuffle\limits_{i=1}^k {y^i}^\prime$ its speaker-attributed equivalent. Each element of the shuffle product, equivalently a path through its finite-state automaton (FSA), is an (interleaved) serialization of the tokens from utterances in $\mathcal{G}$. Let $G\left(\mathcal{Y}\right)$ denote the FSA representing $\mathcal{Y}$.
+
+
+% A CTC-like model can be trained, with the help of a specific CTC topology, $\mathcal{T}$, by marginalizing over both all possible shuffles and over all alignments of shuffles to the audio $\mathbf{x}$. The space of all alignments can be represented as an FSA, $\mathcal{T} \circ G\left(\mathcal{Y}^\prime\right)$. Let $U\left(\mathbf{x}\right)$ be a neural network producing probabilities, $p\left(a_t | \mathbf{x}\right)$, for a frame at time, $t$, over the blank augmented vocabulary, $\oslash \bigcup \mathcal{V}$, or $\oslash \bigcup \left(\mathcal{V} \times \mathcal{S}\right)$ in the speaker attributed case. Then the Viterbi path through \begin{equation} U\left(\mathbf{x}\right) \circ \left(\mathcal{T} \circ G\left(\mathcal{Y}\right)\right)\end{equation} corresponds to the single best interleaving and alignment according to $U\left(\cdot \right)$. Let $a^\prime = a_1^\prime, \ldots, a_T^\prime$ be such an alignment, e.g., \begin{equation} a^\prime = (\_\mbox{hi}, 1), \oslash, (\_\mbox{hey}, 2), \oslash, (\_\mbox{there}, 1).\end{equation}
+% In other words,
+% \begin{equation}
+%     {a^{\prime}}^* = \argmax_{a^\prime \in U\left(\mathbf{x}\right) \circ \left(\mathcal{T} \circ G\left(\mathcal{Y}\right)\right)} p\left(a^\prime | \mathbf{x}\right). \label{eq:alignment}
+% \end{equation}
+
+% We will also use the $\beta^{-1}\left(\mathcal{Y}\right)$ as short hand for $\mathcal{T} \circ G\left(\mathcal{Y}\right)$ where the composition with the neural network outputs is implied.
+
+A CTC-like model can be trained with topology $\mathcal{T}$ by marginalizing over all transcript shuffles and their alignments to the audio $\mathbf{x}$. These alignments are represented by the FSA $\mathcal{T}\circ G(\mathcal{Y}^\prime)$. Let $U(\mathbf{x})$ be a neural network producing frame-level probabilities $p(a_t\mid\mathbf{x})$ over the blank-augmented vocabulary ${\oslash}\cup\mathcal{V}$, or ${\oslash}\cup(\mathcal{V}\times\mathcal{S})$ in the speaker-attributed case. The Viterbi path through
+\begin{equation}
+U(\mathbf{x})\circ\left(\mathcal{T}\circ G(\mathcal{Y}^\prime)\right)
+\end{equation}
+gives the most likely interleaving and alignment. Let $a^\prime=a_1^\prime,\ldots,a_T^\prime$ denote this alignment, e.g., $a^\prime=(\_\mbox{hi},1),\oslash,(\_\mbox{hey},2),\oslash,(\_\mbox{there},1).$
+Thus,
+\begin{equation}
+{a^\prime}^*=
+\argmax_{a^\prime\in U(\mathbf{x})\circ\left(\mathcal{T}\circ G(\mathcal{Y}^\prime)\right)}
+p(a^\prime\mid\mathbf{x}).
+\label{eq:alignment}
+\end{equation}
+
+We also use $\beta^{-1}(\mathcal{Y})$ -- all alignments that map to a serialization in $\mathcal{Y}$ -- as shorthand for $\mathcal{T}\circ G(\mathcal{Y})$, with composition with the neural-network outputs implied.
+
+\subsection{Fast and Efficient Long-form Alignment}
+\label{sec:longform_tricks}
+Speaker-attributed alignment can in principle be applied directly to real meeting recordings, but these often contain long ($>1$ min) utterance groups without pauses and enough speakers for the shuffle graphs to become very large. Even with the partial-order pruning of~\cite{wiesner2026modeling} and restrictive collars, constructing the full graph can be a bottleneck and consume substantial GPU memory. On the 32\,GiB V100s used for most experiments, naive Viterbi alignment (Section~\ref{sec:SpAShl}) causes out-of-memory errors. We therefore apply three techniques for efficient long-form alignment.
+
+
+\textbf{1-state CTC-topology} -- We use a 1-state CTC topology~\cite{laptev2022ctc} with a self-loop accepting all symbols, including $\oslash$ instead of the training topology. Since CTC models produce peaky outputs, this has little effect on performance while substantially reducing the topology expansion of the shuffle graph.
+
+
+\textbf{Blank-frame removal} -- Following~\cite{chen2016phone}, where blank frames are removed prior to constructing transcript lattices to improve efficiency, we remove frames from network outputs, $U\left(\mathbf{x}\right)$, for which $p\left(\oslash \mid \mathbf{x}\right)>\lambda$. The threshold $\lambda$ is tuned on a development set to remove approximately a requested percentage of frames. Storing removed frame indices enables recovering the original timing. Because the shuffle model requires at least as many frames as total transcript tokens, $\oslash$-frames are not pruned in some regions, resulting in a slightly lower effective removal rate than requested.
+  
+
+\textbf{Time restricted alignment} -- In long-form data we often have coarse segment timing information, such as start and end times. Similar to time constraints used in \textsc{Kaldi} numerator-graph construction~\cite{povey2016purely}, we apply a token mask that permits only $\oslash$ outside each segment with a collar to account for boundary annotation error.
+    
+\textbf{Lazy Graph Chunks} -- For very long recordings or spans of heavy multi-speaker overlap, the shuffle graph can become too large to construct. We therefore build the alignment graph in configurable time blocks, similar in spirit to lazy FST construction~\cite{mohri2002weighted} and block Viterbi~\cite{kriouile1990algorithme,BOULIANNE199461}. However, we make no local path decision at block boundaries: all feasible boundary states and their Viterbi scores are retained. Search is exact with respect to the timing constraints. Given the coarse timestamps, we hypothesize a \emph{frontier} of shuffle-graph states at each block boundary. Only frontier states are active at the boundary. Once Viterbi reaches this time, the next graph block is built using the previous frontier as initial states, initialized with their Viterbi scores. The next frontier is estimated assuming uniform token rate between segment start and end times.
+
+In multi-talker alignment, speaker labels defined by start time or total speech duration must be tracked across audio chunks (Figure~\ref{fig:speaker_tracking_ultra_minimal}), used when processing long-form recordings -- it matches training chunks and reduces GPU memory. Because the acoustic model $U\left(\cdot\right)$ assigns speaker-output slots independently for each chunk, the same speaker may receive different labels across chunks. We therefore retain a mapping $\pi_c$ from global speakers to the output slots for chunk $c$. When Viterbi scores are passed across a graph frontier spanning audio chunks, speaker labels are reconciled using $\pi_c$ and $\pi_{c+1}$.
+
+\textbf{BPE Trimming} -- Smaller units can improve alignment by providing finer temporal resolution~\cite{bain2023whisperx}. However, we were unable to train character-level shuffle models because their longer output sequences (length-$N$) greatly increase shuffle-graph size, $\mathcal{O}\left(kN^k\right)$, particularly under heavy overlap ($k$-speakers). At inference, block-wise graph construction makes longer sequences tractable. We therefore recursively decompose BPE units, as in BPE trimming~\cite{sennrich2019revisiting,cognetta-etal-2024-analysis}, but use token length rather than frequency: we choose the shortest decomposition such that no token exceeds a specified length.
+\input{pictures/speaker_remapping}
+
+\vspace{-5mm}
+\subsection{Alignment without Speaker Labels}
+\label{sec:speaker_attribution}
+Our aim is to jointly align and attribute tokens to speakers. Section~\ref{sec:SpAShl} considered this problem when utterance speaker labels are known. Without speaker labels, we decompose it into two steps: (i) find the best token alignment over the speaker-independent shuffle product $\mathcal{Y}$; and (ii) find the best partition of utterances among speakers given this alignment.
+
+% Let $\mathcal{P}=\{\mathcal{P}_{1},\ldots,\mathcal{P}_{m}\}$ be a partition of the $k$ utterances in $\mathcal{G}$ into $m\leq s_{\max}\leq k$ speakers, where $s_{\max}=k$ if the number of speakers is unconstrained. Let $g(u^i,\mathcal{P})=j$ if $u^i\in\mathcal{P}_{j}$, and let $\mathbf{P}$ denote the set of feasible partitions. Since a speaker-attributed alignment can be defined by a token alignment and a partition,
+% \begin{align}
+% {a^\prime}^*
+% &=\argmax_{a\in\beta^{-1}(\mathcal{Y}),\,\mathcal{P}\in\mathbf{P}}
+% p(a\mid\mathbf{x})p(\mathcal{P}\mid a,\mathbf{x}).
+% \end{align}
+% We approximately solve this joint optimization by
+% \begin{align}
+% a^* &= \argmax_{a\in\beta^{-1}(\mathcal{Y})}p(a\mid\mathbf{x}),\\
+% \mathcal{P}^* &= \argmax_{\mathcal{P}\in\mathbf{P}}
+% p(\mathcal{P}\mid\mathbf{x},a^*).
+% \end{align}
+
+% Although speaker labels are unknown, utterance indices can be retained on tokens during alignment while using only $p(\upsilon_t\mid\mathbf{x})$ for the arc weights. Thus $a^*$ identifies the non-$\oslash$ frames aligned to each utterance. Let
+% \begin{equation}
+% \mathcal{T}_{u^i}
+% =
+% \{t\mid a_t^*=(\upsilon,i),\,\upsilon\neq\oslash\}.
+% \end{equation}
+
+% For the factored joint shuffle model~\cite{wiesner2026modeling}, only non-blank frames contribute to the probability of a partition. Let $\bar{\oslash}$ denote the event that the token emitted at a frame is nonblank. We then write
+% \begin{align}
+% p(\mathcal{P}\mid\mathbf{x},a^*)
+% &=\prod_{i=1}^{k}\prod_{t\in\mathcal{T}_{u^i}}
+% p_{\sigma_t}\left(g(u^i,\mathcal{P})\mid\mathbf{x},\bar{\oslash}\right)\\
+% &=\prod_{i=1}^{k}G(\mathcal{P},u^i),
+% \end{align}
+% and therefore
+% \begin{equation}
+% \mathcal{P}^*=
+% \argmax_{\mathcal{P}\in\mathbf{P}}
+% \prod_{i=1}^{k}G(\mathcal{P},u^i).
+% \end{equation}
+
+Let $\mathcal{P}=\{\mathcal{P}_{1},\ldots,\mathcal{P}_{m}\}$ be a partition
+of the $k$ utterances in $\mathcal{G}$ into $m\leq s_{\max}\leq k$ speakers,
+where $s_{\max}=k$ if unconstrained. Let $g(u^i,\mathcal{P})=j$ if
+$u^i\in\mathcal{P}_{j}$, and let $\mathbf{P}$ denote the set of feasible
+partitions. Since a speaker-attributed alignment can be defined by a token
+alignment and a partition,
+\begin{equation}
+{a^\prime}^*
+=
+\argmax_{\substack{a\in\beta^{-1}(\mathcal{Y})\\
+                   \mathcal{P}\in\mathbf{P}}}
+p(a\mid\mathbf{x})p(\mathcal{P}\mid a,\mathbf{x}).
+\end{equation}
+We approximately solve this joint optimization by
+\begin{equation}
+\begin{gathered}
+a^*
+=
+\argmax_{a\in\beta^{-1}(\mathcal{Y})}
+p(a\mid\mathbf{x}),\\
+\mathcal{P}^*
+=
+\argmax_{\mathcal{P}\in\mathbf{P}}
+p(\mathcal{P}\mid\mathbf{x},a^*).
+\end{gathered}
+\end{equation}
+
+Although speaker labels are unknown, utterance indices can be retained on
+tokens during alignment while using only $p(\upsilon_t\mid\mathbf{x})$ for
+the arc weights. Thus $a^*$ identifies the non-$\oslash$ frames aligned to
+each utterance; let
+$\mathcal{T}_{u^i}=\{t\mid a_t^*=(\upsilon,i),\,\upsilon\neq\oslash\}$.
+
+For the factored joint shuffle model~\cite{wiesner2026modeling}, only
+non-blank frames contribute to the probability of a partition. Let
+$\bar{\oslash}$ denote the event that the token emitted at a frame is
+nonblank. We then write
+\begin{equation}
+\begin{gathered}
+p(\mathcal{P}\mid\mathbf{x},a^*)
+=
+\prod_{i=1}^{k}\prod_{t\in\mathcal{T}_{u^i}}
+p_{\sigma_t}\!\left(
+g(u^i,\mathcal{P})\mid\mathbf{x},\bar{\oslash}
+\right)
+=
+\prod_{i=1}^{k}G(\mathcal{P},u^i),\\
+\mathcal{P}^*
+=
+\argmax_{\mathcal{P}\in\mathbf{P}}
+\prod_{i=1}^{k}G(\mathcal{P},u^i).
+\end{gathered}
+\end{equation}
+
+For a few utterances, $\mathcal{P}^*$ can be found by brute force search over $\mathbf{P}$. We instead greedily assign each utterance to the element of the partition (speaker) that maximizes $G\left(\mathcal{P}, u^i\right)$.
+
+
+
+
+
+
+
+
+
+
+
+
+
+% --------------------------------------
+% Our aim is to jointly align and attribute token sequences to speaker. In Section \ref{sec:SpAShl} we saw how to solve this problem when utterances were labeled with speaker. 
+
+% Consider the shuffle product obtained from only the token sequences, i.e., not considering speaker, and denote this as $\mathcal{Y}$. If speaker labels are not present, we propose to decompose this problem into two steps: (i) find the best token alignment without considering speaker labels, i.e., finding the best path among $\beta^{-1}\left(\mathcal{Y}\right)$; (ii) find the best partition of segments among speakers given the alignment. Let $\mathcal{P} = \{\mathcal{P}_{s_1}, \ldots, \mathcal{P}_{s_{max}}\}$ be a partition of the $k$ utterances in $\mathcal{G}$, into at most $k$ speakers, let $g: \left(u^i, \mathcal{P}\right) \to s \ \ s.t.  \ \ u^i \in \mathcal{P}_s$ be the map from an utterance, $u^i$ to its index in partition $\mathcal{P}$, and let $\mathbf{P}$ be a set of feasible partitions, for instance, all Partitions into at most $s_{max}$ speakers. Note that a speaker attributed alignment can be equivalently defined by a token alignment and a partition. Formally, the problem can be stated as,
+% \begin{align}
+%     {a^\prime}^* &= \left(a^*, \mathcal{P}^*\right)\\
+%    &= \argmax_{a \in \beta^{-1}\left(\mathcal{Y}\right), \mathcal{P} \in \mathbf{P}} p\left(a, \mathcal{P} | \mathbf{x}\right) \\
+%    &= \argmax_{a \in \beta^{-1}\left(\mathcal{Y}\right), \mathcal{P} \in \mathbf{P}} p\left(a | \mathbf{x}\right) p\left(\mathcal{P} | a, \mathbf{x}\right).
+% \end{align}
+% We propose to approximately solve the attributed alignment problem by 
+% \begin{align}
+%      a^* &= \argmax_{a\in \beta^{-1}\left(\mathcal{Y}\right)} p\left(a | \mathbf{x}\right) \\
+%      \mathcal{P}^* &= \argmax_{\mathcal{P} \in \mathbf{P}} p\left(\mathcal{P} | \mathbf{x}, a^*\right).
+% \end{align}
+
+% % Brümmer et. al \cite{brummer2010speaker} and van Leeuwen \cite{leeuwen2010speaker}, discuss the task of speaker partitioning, the combinatorial search space inherent to this task, and consequently to speaker diarization. 
+% %For this reason both mostly discarded direct search over speaker partitions in favor of clustering based approximations that are more scalable with the number of utterances. However, 
+% % Different from clustering-based approaches to solve the partitioning problem, directly search over the space of all speaker partitions may be possible when the number of utterances is small enough, such as within utterance groups.
+
+% % Let $\mathcal{Y}_\mathcal{P}^\prime$ be the speaker augmented shuffle graph for a speaker partition, $\mathcal{P}$, recalling that it is equivalent to $\mathcal{Y}$ with some additional speaker tags on arcs. Let $ \mathcal{Y}^{\prime\prime} = \bigcup_\mathcal{P} \mathcal{\mathcal{Y}_{\mathcal{P}}^\prime}$
+% % be the union of all shuffle products assuming different speaker partitions. This graph encodes all valid ways of interleaving $u_y^1, \ldots, u_y^k$ for all speaker partitions.
+
+% % This set is very large: the number of possible speaker partitions is given by the Bell number \cite{bell1938iterated, becker1948arithmetic}, $B_k = (1, 2, 5, 15, 52, 203, ...)_k$, so $\mathcal{Y}^{\prime\prime}$ will be that many times as big as the already large shuffle, $\mathcal{Y}$. Running even a pruned Viterbi algorithm on this graph is expensive. However, reducing this problem to comparing possible speaker partitions for a single alignment, makes the problem tractable for the vast majority of utterance groups ($B_9 = 21147$).
+% % Limiting the maximum number of possible speakers to $s_{max}$ reduces the number of partitions to $\sum_{i=1}^{s_{max}} S\left(k, s\right)$, where $S\left(k, s\right)$ is the Stirling number of the second kind~\cite{}, which grows more slowly with $k$.
+
+% Although we do not know the speaker labels, we do not need to discard the utterance indices associated with each token during alignment. We can include them in place of the speaker tags, and use only $p\left(\upsilon_t | \mathbf{x}\right)$ for the arc weights. Then the optimal alignment, $a^*$, will include utterance indices on the non-$\oslash$ output frames. Let $\mathcal{T}_{u^i} = \{ t \mid a_t^* = (\bar{\oslash},i) \}$ be the set of non-blank tokens that aligned to each utterance $u^i$.
+
+% Note that in the factored joint shuffle model \cite{wiesner2026modeling}, given an alignment, the only frames that contribute to the probability of a particular partition are the non-blank frames. We model the probability of a partition as
+
+% \begin{align}
+%     p\left(\mathcal{P} | \mathbf{x}, a^*\right)
+%     &= \prod_{i=1}^{k} \prod_{t\in \mathcal{T}_{u^i}} p_{\sigma_t}\left(g\left(u^i, \mathcal{P}\right) | \ \mathbf{x}, \bar{\oslash}\right) \\
+%     &= \prod_{i=1}^k G\left(\mathcal{P}, u^i\right),
+% \end{align}
+% and therefore,
+% \begin{equation}
+%     \argmax_{\mathcal{P} \in \mathbf{P}} p\left(\mathcal{P} | \mathbf{x}, a^*\right) 
+%     = \argmax_{\mathcal{P} \in \mathbf{P}} \prod_{i=1}^k G\left(\mathcal{P}, u^i\right).
+% \end{equation}
+
+% If the number of partitions, or equivalently utterances, is relatively small, we could search exhaustively over all partitions. We propose a simple method, which is to consider each utterance independently. Actually, this search method is exact if the set of feasible partitions is unconstrained. 
+% %However, using speaker labels that have some semantic meaning, such as speaker appearance order, or rank by amount of speech, constrains the set of feasible partitions, $\mathbf{P}$, and independent assignment is no longer exact. Therefore, our other approach is to represent the set of feasible partitions as a graph with paths, all of length $k$, representing speaker assignments for each of the $k$ utterances. A partition is just one path in this graph, and it can also be found via beam search.
+
+% %This procedure also provides a diagnostic for the quality of the speaker labeling for speaker attributed ASR systems. Completely disentangling the effects of speaker attribution from token recognition is difficult; performance is normally measured wholistically using metrics such as cpWER \cite{}. Some LLM-based post-processing proposed using word diarization error rate (WDER) since their systems are label synchronous and cannot be used to evaluate frame-level DER. However, the metric is somewhat flawed because the metric not take into account insertions or deletions, and tokens are attributed after recognition, which may be errorful. The procedure described above can be used to completely disentangle attribution from token recognition and measure speaker attribution given the single best alignment of the ground-truth transcripts.
+
+
+% % Now if the term $G\left(\mathcal{P}, u^i\right)$, can be optimized sequentially, or even, independently for each utterance, $u^i$, then we can separate the assignment problem by sequentially picking the best scoring speaker given the remaining valid partitions.
+% % % \begin{equation}
+% % %     \max_{\mathcal{P} \in \mathbf{P}} \prod_{i=1}^k G\left(\mathcal{P}, u^i\right) = \prod_{i=1}^k \max_{\mathcal{P}_{s} | \mathcal{P} \in \mathbf{P}} G\left(\mathcal{P}_s, u^i \right).
+% % % \end{equation}
+% % If speakers are labeled according to start time, then the partitions are constrained to be restricted growth strings \cite{silnova2020probabilistic}, \begin{equation}
+% %     \mathcal{R} = \{r | r_n \leq \max_{m < n} r_m + 1\}.
+% % \end{equation}
+% % These are strings such as $\{00, 01, 012, 010, 0102\}$, where the value of the next symbol can be at most one more than the maximum among the previous symbols. Each growth string can be mapped via $F^{-1}: r \to \mathcal{P}$, from a string $r \in \mathcal{R}$ to a partition, $\mathcal{P}$. Then the optimal partition,
+% % \begin{equation}
+% %     \mathcal{P}^* = \argmax_{r \in \mathcal{R}} \prod_{i=1}^k G\left(F^{-1}\left(r\right), u^i\right).
+% % \end{equation}
+
+% % We can do a prefix search over these strings with a beam to approximately find the optimal partition. In the case of greedy search, $\mathcal{P}^*$ can be found recursively as,
+% % \begin{align}
+% %     r_i^* &= \argmax_{s_i} \ \prod\limits_{t \in \mathcal{T}_{u^i}}p_{\sigma_t}\left(s_i | \mathbf{x}, \bar{\oslash}\right), \\
+% %     \mbox{ and } \mathcal{P}^* &= F\left(r_1^*\cdots r_k^*\right).
+% % \end{align}
+
+% % \textbf{Diarization via Joint Alignment} -- We can extend the alignment algorithm in Equation \ref{eq:alignment} to work when the speaker labels are unknown by augmenting the shuffle graph to include all possible speaker assignments of the shuffled utterances. Let $\mathbf{s} \in \mathcal{S}^k$ be a speaker assignment vector for the utterances in $\mathcal{G}$, and $\mathcal{Y}_\mathbf{s}^\prime$ be the speaker augmented shuffle graph for a speaker assignment, $\mathbf{s}$. Finally, let
+% % \begin{equation}
+% %     \mathcal{Y}^{\prime\prime} = \bigcup\limits_{\mathbf{s}} \mathcal{\mathcal{Y}_{\mathbf{s}}^\prime}
+% % \end{equation}
+% % be the union of all shuffle products assuming different speaker assignments. The optimal alignment $a^* =(\upsilon, \sigma)$ corresponds to the arc labels on the Viterbi path through the supervision graph, $G\left(\mathcal{Y}^{\prime\prime}\right)$. The size of this graph is prohibitively large --- for $k$ utterances the number of possible speaker assignments is the number of possible utterance partitions, also known as the Bell number \cite{bell1938iterated, becker1948arithmetic}, $B_k= \left(1, 2, 5, 15, 52, 203, \ldots \right)_k$ -- so it will be that many times as big as the already large shuffle graph, $\mathcal{Y}$. For anything beyond $k=3$, this approach requires lazy construction of the graph to avoid storing it all in memory and exhaustively exploring all paths. 
+
+% % \textbf{Diarization by Marginalizing over Alignments} -- Instead of finding the speaker assignment and token alignment that is \emph{jointly} most probable, we could instead first find the \emph{marginally} most likely speaker assignment over all possible token serializations, and then use that for alignment. Instead of running the Viterbi algorithm a single time through a large graph, $G\left(\bigcup_{\mathbf{s}} \mathcal{Y}_\mathbf{s}^\prime\right)$, we compute the Viterbi path using the supervision graph corresponding to the optimal speaker assignment, $G\left(\mathcal{Y}_{\mathbf{s}^*}^\prime\right)$. However, finding the optimal assignment requires running the forward algorithm on \emph{all possible} supervision graphs, $G\left(\mathcal{Y}_\mathbf{s}^\prime\right)$, and then picking the assignment that resulted in the maximum likelihood. Formally,
+% % \begin{align}
+% %     \mathbf{s}^* &= \argmax\limits_{\mathbf{s}} p\left(\mathcal{G}_\mathbf{s} | \mathbf{x}, \mathbf{s}\right), \\
+% %     a^* &= \argmax\limits_{a \in \beta^{-1}\left(\mathcal{Y}_{\mathbf{s}^*}^\prime\right)} p\left(a | \mathbf{x}\right).
+% % \end{align}
+
+% % One advantage of this approach is that we do not require $\mathcal{Y}^{\prime\prime}$, so the graphs, $G\left(\mathcal{Y}_{\mathbf{s}}^\prime\right)$, can be constructed sequentially, which mitigates the memory footprint of the algorithm. However, this also means that for $k$ utterances, the forward algorithm must be run for $B_k$ times. For up to $k=5$, this might be possible, but it is extremely slow and anything beyond $k=3$ utterances is not practical. This is the most computationally expensive approach.
+
+% % \textbf{Alignment Conditioned Diarization} -- This last method is the most computationally tractable and is what we actually implemented. If the optimal interleaved sequence of tokens was known, then we could find the \emph{conditionally} most likely speaker assignments considering only a single element $y \in \mathcal{Y}$.
+
+% % One important point -- even though we do not know the speaker labels, we do not need to discard the utterance indices associated with each token during alignment. In fact, these can be included as an (additional) output label on the shuffle graph, or as a tuple where the speaker label is replaced with an utterance index. However, the arc weights come only from $p\left(\upsilon_t | \mathbf{x}\right)$. Let $\omega^*$, be the optimal frame-level utterance tags resulting from the token-level alignment, such that $a^* = \left(\upsilon^*, \omega^*\right)$. Let, $\tau_i = \{t\ |\ \omega_t^* = i\}$ be the set of frames that belong to the $i^{th}$ utterance. Note that because we are assuming single speaker utterances, and we \emph{do} have access to the utterance indices, a speaker assignment will induce a corresponding sequence of speakers for an associated interleaved token sequence. In other words, given the token / segment alignment for $k$ utterances, the frame-level speaker tags, $\sigma$, are a function of $\mathbf{s}$, i.e., $\sigma: \left((\tau)_k, \mathbf{s}\right) \to \sigma$.
+% % Each possible speaker assignment is then compared. 
+
+% % Let $a_\mathbf{s}^*$ be the sequence of tuples created from the best token alignment, $\upsilon^*$, and the induced speaker labels when using speaker assignment, $\mathbf{s}$, and let $y_\mathbf{s}^* = \beta\left(a_{\mathbf{s}}^*\right)$, i.e., with the $\oslash$ symbols removed. We could, for instance, construct the graph, $G\left(\bigcup_{\mathbf{s}}y_\mathbf{s}^*\right)$, for each possible speaker assignment, and find this optimal alignment via:
+
+% % \begin{align}
+% %     y^* &= \beta\left(\argmax\limits_{a \in \beta^{-1}\left(\mathcal{Y}\right)} p\left(a | \mathbf{x}\right)\right) \\
+% %     a^* &= \argmax\limits_{a \in \beta^{-1}\left(\bigcup_\mathbf{s} y_\mathbf{s}^*\right)} p\left(a | \mathbf{x}\right).
+% % \end{align}
+
+% % However, we can significantly simplify the search over speaker assignments. Consider the score along a single path where we have assumed, as in CTC, that the alignments at different times given the input $\mathbf{x}$ are conditionally independent, i.e.,
+% % \begin{equation}
+% %     p\left(a | \mathbf{X}\right) = \prod_{t=1}^T p\left(\upsilon_t | \mathbf{x}\right)p\left(\sigma_t | \upsilon_t, \mathbf{x}\right).
+% % \end{equation}
+
+% % The best scoring speaker assignment, $\mathbf{s}^*$, is given by the following optimization:
+% % \begin{align}
+% %     &\max\limits_{\mathbf{s}} \prod_{t=1}^T p\left(\upsilon_t^* | \mathbf{x}\right)p\left(\sigma_t\left(\mathbf{s}\right) | \upsilon_t^*, \mathbf{x}\right) \\
+% %     &= \prod_{t=1}^T p\left(\upsilon_t^* | \mathbf{x}\right)\max\limits_{\mathbf{s}} \prod_{t=1}^T p\left(\sigma_t\left(\mathbf{s}\right) | \upsilon_t, \mathbf{x}\right) \\
+% %     &= \prod_{t=1}^T p\left(\upsilon_t^* | \mathbf{x}\right) \max\limits_{\mathbf{s}} \prod_{i=1}^k \prod_{t \in \tau_i} p\left(\mathbf{s}_i | \upsilon_t, \mathbf{x}\right) \\
+% %     &=  \prod_{t=1}^T p\left(\upsilon_t^* | \mathbf{x}\right) \prod_{i=1}^k\max\limits_{\mathbf{s}_i} \prod_{t \in \tau_i} p\left(\mathbf{s}_i| \upsilon_t, \mathbf{x}\right) \label{eq:prefix}
+% % \end{align}
+
+% % Since the maximum is the product of $k$ independent values, we see that the speaker assignment can be optimized \emph{locally} per segment as long as the joint probability of $p\left(a_t | \mathbf{x}\right) = p\left(\upsilon_t  |\mathbf{x}\right) p\left(\sigma_t | \upsilon_t, \mathbf{x}\right)$. 
+% % Therefore, we can use the factored joint model described in Section
+% % \ref{sec:speaker_attribution}, to significantly reduce the search.

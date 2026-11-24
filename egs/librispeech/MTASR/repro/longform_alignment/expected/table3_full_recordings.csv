@@ -1,0 +1,4 @@
+model,nsf_dev_iou,nsf_dev_be_ms,nsf_dev_kendall_pct,nsf_eval_iou,nsf_eval_be_ms,nsf_eval_kendall_pct,ami_dev_iou,ami_dev_be_ms,ami_dev_kendall_pct,ami_eval_iou,ami_eval_be_ms,ami_eval_kendall_pct
+Speaker attributed,57.4,123,12.6,57.8,108,19.2,61.5,109,9.2,61.1,118,10.4
+Token only,57.2,124,12.6,57.8,108,18.9,61.6,109,9.1,61.2,122,10.7
+Speaker attributed plus BPE trim,60.0,115,12.5,61.0,100,19.4,64.7,94,9.2,64.1,103,10.5

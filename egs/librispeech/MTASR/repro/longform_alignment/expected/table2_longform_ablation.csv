@@ -1,0 +1,5 @@
+model,nsf_dev_iou,nsf_dev_be_ms,nsf_dev_kendall_pct,nsf_eval_iou,nsf_eval_be_ms,nsf_eval_kendall_pct,rtfx,peak_gpu_gib
+One-state topology,58.4,117,12.6,58.7,104,19.0,9.7,14.3
+Retain 30 percent frames,56.7,128,12.7,57.4,111,19.2,19.3,8.5
+Lazy graph chunks,57.4,123,12.6,57.8,108,19.2,29.8,2.0
+BPE trim,61.0,112,12.4,61.4,97,19.4,17.0,2.0

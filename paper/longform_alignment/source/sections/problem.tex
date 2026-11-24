@@ -1,0 +1,17 @@
+% In this section we formalize the problem of multi-talker alignment and its variations. The fundamental supervision object that we will consider is the \textbf{utterance group} \cite{kanda2021large}, which is simply a collection of transcribed utterances with a reference start and end time associated with an audio input, $\mathbf{x}$. Let $\mathcal{G} = \{u^1, \ldots, u^k\}$, be an utterance group, associated with $\mathbf{x}$. Let $y^i$ be a sequence of tokens describing the audio associated with the utterance, $u^i$, where each token is drawn from vocabulary, $\mathcal{V}$. We assume that for each $u^i \in \mathcal{G}$ we have a single speaker label. Let $\mathcal{S} = \{1, \ldots, s_{max}\}$ be an ordering of up to $s_{max}$ speakers in $\mathbf{x}$, e.g., the order in which speakers first appear, and let $s^i$ be the speaker associated with utterance $u^i$. We consider two scenarios:
+
+% \textbf{Alignment with Speaker Labels} -- The speaker label associated with each utterance is known. The only latent variable is the time alignment. Using speaker labels might improve alignment quality. We will denote speaker attributed versions of variables, with $\prime$, e.g., the speaker attributed token sequence, $y$ would be $y^\prime$.
+
+% \textbf{Alignment without Speaker Labels} -- The speaker label associated with each utterance is an additional latent variable that can be inferred, or marginalized. This task is effectively a form of transcript conditioned diarization, where the transcript, its alignment with the audio, and coarse segment boundaries are used to determine speaker boundaries and attribute words to speakers.
+
+%and let ${y^i}^\prime = (y_1^i, s^i), (y_2^i, s^i), \ldots, (y_N^i, s^i)$ be the speaker attributed token sequence for utterance $u^i$. Let $\mathcal{Y^\prime} = \bigshuffle\limits_{i =1}^k {y^i}^\prime$ be the  shuffle product of the speaker attributed token sequences of utterances in $\mathcal{G}$. Let $a^\prime$ be the \emph{alignment} of ${y^i}^\prime$ to $\mathbf{x}$ obtained by labeling each frame (indexed by $t$) of $\mathbf{x}$ with one of the label from for each frame.
+%, speaker pair, $\left(\upsilon_t, \sigma_t\right)$, from $\mathcal{V} \times \mathcal{S}$, or a special no-label symbol, $\oslash$.
+
+% -------------------------------------
+We formalize multi-talker alignment and its variations. The fundamental supervision object is the \textbf{utterance group}%~\cite{kanda2021large}
+, a collection of transcribed utterances with reference start and end times within
+audio input, $\mathbf{x}$. Let $\mathcal{G} = {u^1, \ldots, u^k}$ be an utterance group and $y^i$ the token sequence for utterance $u^i$, with tokens drawn from vocabulary $\mathcal{V}$. Each $u^i \in \mathcal{G}$ has one speaker label. Let $\mathcal{S} = {1, \ldots, s_{\max}}$ denote an ordering of up to $s_{\max}$ speakers in $\mathbf{x}$, e.g., by first appearance, and $s^i$ the speaker associated with $u^i$. We consider two scenarios:
+
+\textbf{Alignment with Speaker Labels} -- The speaker label of each utterance is known and only the time alignment is latent. Speaker labels may improve alignment quality. We denote speaker-attributed variables with $\prime$, e.g., $y^\prime$.
+
+\textbf{Alignment without Speaker Labels} -- The speaker label of each utterance is also latent and can be inferred or marginalized. This is a form of transcript-conditioned diarization, where the transcript, its alignment, and coarse segment boundaries are used to determine speaker boundaries and attribute words to speakers.

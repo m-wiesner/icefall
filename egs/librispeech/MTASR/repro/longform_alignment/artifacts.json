@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "paper_model": {
+    "name": "WavLM Large 8-speaker Shuffle/SpAShl checkpoint 72000",
+    "destination": "exp/fastmss_yodas_en_wavlm_large_spashl_factorized_v100x4_accum4/pinned/checkpoint-72000.pt",
+    "download_url": null,
+    "release_artifact": {
+      "size_bytes": 1282524827,
+      "sha256": "9cb800a1c6584bd5bbfc14359dcf4f767e87f3ea9b45ca4369588221dbb5db21",
+      "local_archive": "/expscratch/mwiesner/shuffle/release/longform_multitalker_alignment/wavlm8spk-checkpoint-72000.pt",
+      "contents": "model state and compact provenance; sufficient for avg=1 alignment and decoding"
+    },
+    "source_training_checkpoint": {
+      "size_bytes": 5096412766,
+      "sha256": "78afc798a41b8133aee5df6bab6e4ad9c1eafe1c09b707bc191771ebd6bfde37",
+      "contents": "model, optimizer, scheduler, scaler, sampler, and training metadata"
+    },
+    "notes": "The compact release artifact was exported from the exact full checkpoint used by the paper. Publish it in an artifact store; do not add either checkpoint to ordinary Git history."
+  },
+  "language_dir": "data/lang_bpe_5000_librispeech_yodas_en",
+  "language_files": [
+    "bpe.model",
+    "unigram_5000.model",
+    "unigram_5000.vocab"
+  ],
+  "external_corpora": [
+    "LibriSpeech-960",
+    "FastMSS LibriSpeech mixtures",
+    "filtered English YODAS doverlap",
+    "NOTSOFAR-1",
+    "AMI"
+  ]
+}

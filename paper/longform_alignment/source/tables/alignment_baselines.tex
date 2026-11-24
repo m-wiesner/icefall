@@ -1,0 +1,292 @@
+% \begin{table*}[htbp]
+% \centering
+% \caption{Baseline Comparison Across Short-form Datasets}
+% \label{tab:baselines}
+% \begin{tabular}{l ccc ccc ccc}
+% \toprule
+% & \multicolumn{3}{c}{\textbf{dev3spk}} & \multicolumn{3}{c}{\textbf{NOTSOFAR dev}} & \multicolumn{3}{c}{\textbf{NOTSOFAR eval}} \\
+% \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+% \textbf{Baselines} & \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$& \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$ \\
+% \midrule
+% Uniform interpolation  (Audio free) & 15.9 & 375 & 77.4 & 38.0 & 170 & 11.2 & 39.8 & 185 & 17.9 \\
+% MFA \cite{}& 38.2 & 332 & 113.1 & 50.2 & 307 & 38.8 & 45.8 & 330 & 73.5 \\
+% Wav2Vec2 CTC \cite{} & 49.8 & 251 & 91.6 & 51.0 & 240 & 32.4 & 48.4 & 258 & 59.8 \\
+% \midrule
+% CTC graph per supervision & 59.8 & 73 & 14.2 & 56.3 & 133 & 14.3 & 56.4 & 131 & 26.0 \\
+% Orig Paper & 58.2 & 81 & 16.9 & -- & -- & -- & -- & -- & -- \\
+% WavLM (reproduction) & 59.0 & 77 & 16.6 & -- & -- & -- & -- & -- & -- \\
+% \midrule
+% \textbf{New Models} \\
+% \midrule
+% WavLM 8spk (72k) & 59.9	& 72 & 13.0 & 58.3 & 115 & 9.3 & 58.6	& 104 & 17.4 \\
+% WavLM 8spk (72k) (token only) & 59.7 & 73 & 13.0 & 57.8 & 123	& 10.6 & 58.0 & 116	& 19.1 \\
+% WAVLM 8spk (72k) + BPE decomposition	& 64.1 & 63 & 12.8 & 60.9	& 105 &	9.0	&	61.3 & 96 & 17.5 \\
+% \midrule
+% \textbf{Long-form Tricks} \\
+% \midrule
+% WavLM 8spk (72k) + 1-state topo & 60.1 & 71 & 12.7 & 58.4 & 113 & 9.1 & 58.6 & 102 & 17.2 \\
+% \quad + 30\% frames & 60.1 & 71 & 12.7 & 57.0 & 121 & 9.6 & 57.5 & 109 & 17.4 \\
+% \quad + 10s graph chunks & 60.1 & 71 & 12.7 & 57.6 & 117 & 9.4 & 57.9 & 105 & 17.3 \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+
+% -------------------------------
+
+% \begin{table*}[htbp]
+% \centering
+% \caption{Baseline Comparison Across Short-form Datasets (Color-Coded by Performance Tier)}
+% \label{tab:baselines_colored}
+% \begin{tabular}{l ccc ccc ccc}
+% \toprule
+% & \multicolumn{3}{c}{\textbf{dev3spk}} & \multicolumn{3}{c}{\textbf{NOTSOFAR dev}} & \multicolumn{3}{c}{\textbf{NOTSOFAR eval}} \\
+% \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+% \textbf{Baselines} & \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$& \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$ \\
+% \midrule
+% Uniform interpolation (Audio free) & \cellcolor{negpoor}15.9 & \cellcolor{negpoor}375 & \cellcolor{negpoor}77.4 & \cellcolor{negpoor}38.0 & \cellcolor{negpoor}170 & \cellcolor{negpoor}11.2 & \cellcolor{negpoor}39.8 & \cellcolor{negpoor}185 & \cellcolor{negpoor}17.9 \\
+% MFA \cite{} & \cellcolor{negpoor}38.2 & \cellcolor{negpoor}332 & \cellcolor{negpoor}113.1 & \cellcolor{negpoor}50.2 & \cellcolor{negpoor}307 & \cellcolor{negpoor}38.8 & \cellcolor{negpoor}45.8 & \cellcolor{negpoor}330 & \cellcolor{negpoor}73.5 \\
+% Wav2Vec2 CTC \cite{} & \cellcolor{negpoor}49.8 & \cellcolor{negpoor}251 & \cellcolor{negpoor}91.6 & \cellcolor{negpoor}51.0 & \cellcolor{negpoor}240 & \cellcolor{negpoor}32.4 & \cellcolor{negpoor}48.4 & \cellcolor{negpoor}258 & \cellcolor{negpoor}59.8 \\
+% \midrule
+% CTC graph per supervision & \cellcolor{neutral}59.8 & \cellcolor{neutral}73 & \cellcolor{neutral}14.2 & \cellcolor{neutral}56.3 & \cellcolor{neutral}133 & \cellcolor{neutral}14.3 & \cellcolor{neutral}56.4 & \cellcolor{neutral}131 & \cellcolor{neutral}26.0 \\
+% Orig Paper & \cellcolor{neutral}58.2 & \cellcolor{neutral}81 & \cellcolor{neutral}16.9 & -- & -- & -- & -- & -- & -- \\
+% WavLM (reproduction) & \cellcolor{neutral}59.0 & \cellcolor{neutral}77 & \cellcolor{neutral}16.6 & -- & -- & -- & -- & -- & -- \\
+% \midrule
+% \textbf{New Models} \\
+% \midrule
+% WavLM 8spk (72k) & \cellcolor{posgood}59.9 & \cellcolor{posgood}72 & \cellcolor{posgood}13.0 & \cellcolor{posgood}58.3 & \cellcolor{posgood}115 & \cellcolor{posgood}9.3 & \cellcolor{posgood}58.6 & \cellcolor{posgood}104 & \cellcolor{posgood}17.4 \\
+% WavLM 8spk (72k) (token only) & \cellcolor{posgood}59.7 & \cellcolor{posgood}73 & \cellcolor{posgood}13.0 & \cellcolor{posgood}57.8 & \cellcolor{posgood}123 & \cellcolor{posgood}10.6 & \cellcolor{posgood}58.0 & \cellcolor{posgood}116 & \cellcolor{posgood}19.1 \\
+% WAVLM 8spk (72k) + BPE decomp. & \cellcolor{posbest}\textbf{64.1} & \cellcolor{posbest}\textbf{63} & \cellcolor{posgood}12.8 & \cellcolor{posbest}\textbf{60.9} & \cellcolor{posbest}\textbf{105} & \cellcolor{posbest}\textbf{9.0} & \cellcolor{posbest}\textbf{61.3} & \cellcolor{posbest}\textbf{96} & \cellcolor{posgood}17.5 \\
+% \midrule
+% \textbf{Long-form Tricks} \\
+% \midrule
+% WavLM 8spk (72k) + 1-state topo & \cellcolor{posgood}60.1 & \cellcolor{posgood}71 & \cellcolor{posbest}\textbf{12.7} & \cellcolor{posgood}58.4 & \cellcolor{posgood}113 & \cellcolor{posgood}9.1 & \cellcolor{posgood}58.6 & \cellcolor{posgood}102 & \cellcolor{posbest}\textbf{17.2} \\
+% \quad + 30\% frames & \cellcolor{posgood}60.1 & \cellcolor{posgood}71 & \cellcolor{posbest}\textbf{12.7} & \cellcolor{posgood}57.0 & \cellcolor{posgood}121 & \cellcolor{posgood}9.6 & \cellcolor{posgood}57.5 & \cellcolor{posgood}109 & \cellcolor{posgood}17.4 \\
+% \quad + 10s graph chunks & \cellcolor{posgood}60.1 & \cellcolor{posgood}71 & \cellcolor{posbest}\textbf{12.7} & \cellcolor{posgood}57.6 & \cellcolor{posgood}117 & \cellcolor{posgood}9.4 & \cellcolor{posgood}57.9 & \cellcolor{posgood}105 & \cellcolor{posgood}17.3 \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+
+% ------------------------------
+
+% \begin{table*}[htbp]
+% \centering
+% \setlength{\tabcolsep}{3.5pt} % Slightly reduce column padding to fit 12 metric columns
+% \caption{Baseline Comparison Across Datasets with Macro-Average Performance}
+% \label{tab:baselines_with_average}
+% \begin{tabular}{l |ccc |ccc |ccc |ccc}
+% \toprule
+% & \multicolumn{3}{c}{\textbf{dev3spk}} & \multicolumn{3}{c}{\textbf{NOTSOFAR dev}} & \multicolumn{3}{c}{\textbf{NOTSOFAR eval}} & \multicolumn{3}{|c}{\textbf{Average}} \\
+% \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+% \textbf{Baselines} & \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$& \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$ & \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$ \\
+% \midrule
+% Uniform interpolation (Audio free) & \cellcolor{negpoor}15.9 & \cellcolor{negpoor}375 & \cellcolor{negpoor}77.4 & \cellcolor{negpoor}38.0 & \cellcolor{negpoor}170 & \cellcolor{negpoor}11.2 & \cellcolor{negpoor}39.8 & \cellcolor{negpoor}185 & \cellcolor{negpoor}17.9 & \cellcolor{negpoor}31.2 & \cellcolor{negpoor}243 & \cellcolor{negpoor}35.5 \\
+% MFA \cite{} & \cellcolor{negpoor}38.2 & \cellcolor{negpoor}332 & \cellcolor{negpoor}113.1 & \cellcolor{negpoor}50.2 & \cellcolor{negpoor}307 & \cellcolor{negpoor}38.8 & \cellcolor{negpoor}45.8 & \cellcolor{negpoor}330 & \cellcolor{negpoor}73.5 & \cellcolor{negpoor}44.7 & \cellcolor{negpoor}323 & \cellcolor{negpoor}75.1 \\
+% Wav2Vec2 CTC \cite{} & \cellcolor{negpoor}49.8 & \cellcolor{negpoor}251 & \cellcolor{negpoor}91.6 & \cellcolor{negpoor}51.0 & \cellcolor{negpoor}240 & \cellcolor{negpoor}32.4 & \cellcolor{negpoor}48.4 & \cellcolor{negpoor}258 & \cellcolor{negpoor}59.8 & \cellcolor{negpoor}49.7 & \cellcolor{negpoor}250 & \cellcolor{negpoor}61.3 \\
+% \midrule
+% CTC graph per supervision & \cellcolor{neutral}59.4 & \cellcolor{neutral}75 & \cellcolor{neutral}14.6 & \cellcolor{neutral}56.2 & \cellcolor{neutral}135 & \cellcolor{neutral}14.5 & \cellcolor{neutral}56.1 & \cellcolor{neutral}134 & \cellcolor{neutral}26.8 & \cellcolor{neutral}57.2 & \cellcolor{neutral}115 & \cellcolor{neutral}18.6 \\
+% Orig Paper & \cellcolor{neutral}58.2 & \cellcolor{neutral}81 & \cellcolor{neutral}16.9 & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+% WavLM (reproduction) & \cellcolor{neutral}59.0 & \cellcolor{neutral}77 & \cellcolor{neutral}16.6 & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+% \midrule
+% \textbf{New Models} \\
+% \midrule
+% WavLM 8spk (72k) & \cellcolor{posgood}59.9 & \cellcolor{posgood}72 & \cellcolor{posgood}13.0 & \cellcolor{posgood}58.3 & \cellcolor{posgood}115 & \cellcolor{posgood}9.3 & \cellcolor{posgood}58.6 & \cellcolor{posgood}104 & \cellcolor{posgood}17.4 & \cellcolor{posgood}58.9 & \cellcolor{posgood}97 & \cellcolor{posgood}13.2 \\
+% WavLM 8spk (72k) (token only) & \cellcolor{posgood}59.7 & \cellcolor{posgood}73 & \cellcolor{posgood}13.0 & \cellcolor{posgood}57.8 & \cellcolor{posgood}123 & \cellcolor{posgood}10.6 & \cellcolor{posgood}58.0 & \cellcolor{posgood}116 & \cellcolor{posgood}19.1 & \cellcolor{posgood}58.5 & \cellcolor{posgood}104 & \cellcolor{posgood}14.2 \\
+% WAVLM 8spk (72k) + BPE decomp. & \cellcolor{posbest}\textbf{64.1} & \cellcolor{posbest}\textbf{63} & \cellcolor{posgood}12.8 & \cellcolor{posbest}\textbf{60.9} & \cellcolor{posbest}\textbf{105} & \cellcolor{posbest}\textbf{9.0} & \cellcolor{posbest}\textbf{61.3} & \cellcolor{posbest}\textbf{96} & \cellcolor{posgood}17.5 & \cellcolor{posbest}\textbf{62.1} & \cellcolor{posbest}\textbf{88} & \cellcolor{posgood}13.1 \\
+% \midrule
+% \textbf{Long-form Tricks} \\
+% \midrule
+% WavLM 8spk (72k) + 1-state topo & \cellcolor{posgood}60.1 & \cellcolor{posgood}71 & \cellcolor{posbest}\textbf{12.7} & \cellcolor{posgood}58.4 & \cellcolor{posgood}113 & \cellcolor{posgood}9.1 & \cellcolor{posgood}58.6 & \cellcolor{posgood}102 & \cellcolor{posbest}\textbf{17.2} & \cellcolor{posgood}59.0 & \cellcolor{posgood}95 & \cellcolor{posbest}\textbf{13.0} \\
+% \quad + 30\% frames & \cellcolor{posgood}60.1 & \cellcolor{posgood}71 & \cellcolor{posbest}\textbf{12.7} & \cellcolor{posgood}57.0 & \cellcolor{posgood}121 & \cellcolor{posgood}9.6 & \cellcolor{posgood}57.5 & \cellcolor{posgood}109 & \cellcolor{posgood}17.4 & \cellcolor{posgood}58.2 & \cellcolor{posgood}100 & \cellcolor{posgood}13.2 \\
+% \quad \quad + 10s graph chunks & \cellcolor{posgood}60.1 & \cellcolor{posgood}71 & \cellcolor{posbest}\textbf{12.7} & \cellcolor{posgood}57.6 & \cellcolor{posgood}117 & \cellcolor{posgood}9.4 & \cellcolor{posgood}57.9 & \cellcolor{posgood}105 & \cellcolor{posgood}17.3 & \cellcolor{posgood}58.5 & \cellcolor{posgood}97 & \cellcolor{posgood}13.1 \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+
+
+% ---------------------------------
+
+% \begin{table*}[htbp]
+% \centering
+% \setlength{\tabcolsep}{3.5pt} % Slightly reduce column padding to fit 12 metric columns
+% \caption{Baseline Comparison Across Datasets with Macro-Average Performance (Cell-Level Granular Heatmap)}
+% \label{tab:baselines_with_average_granular}
+% \begin{tabular}{l |ccc |ccc |ccc |ccc}
+% \toprule
+% & \multicolumn{3}{c}{\textbf{dev3spk}} & \multicolumn{3}{c}{\textbf{NOTSOFAR dev}} & \multicolumn{3}{c}{\textbf{NOTSOFAR eval}} & \multicolumn{3}{|c}{\textbf{Average}} \\
+% \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+% \textbf{Baselines} & \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$& \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$& \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$ & \textbf{IoU} $\uparrow$ & \textbf{BE} $\downarrow$ & $\tau$ \% $\downarrow$ \\
+% \midrule
+% Uniform token rate (Audio-free) & \cellcolor{cworst}15.9 & \cellcolor{cworst}375 & \cellcolor{cpoor}77.4 & \cellcolor{cworst}38.0 & \cellcolor{cpoor}170 & \cellcolor{cmed}11.2 & \cellcolor{cworst}39.8 & \cellcolor{cpoor}185 & \cellcolor{cmed}17.9 & \cellcolor{cworst}31.2 & \cellcolor{cpoor}243 & \cellcolor{cpoor}35.5 \\
+% MFA \cite{mcauliffe2017montreal} & \cellcolor{cpoor}38.2 & \cellcolor{cworst}332 & \cellcolor{cworst}113.1 & \cellcolor{cpoor}50.2 & \cellcolor{cworst}307 & \cellcolor{cworst}38.8 & \cellcolor{cpoor}45.8 & \cellcolor{cworst}330 & \cellcolor{cworst}73.5 & \cellcolor{cpoor}44.7 & \cellcolor{cworst}323 & \cellcolor{cworst}75.1 \\
+% Wav2Vec2 CTC \cite{baevski2020wav2vec,bain2023whisperx} & \cellcolor{cpoor}49.8 & \cellcolor{cpoor}251 & \cellcolor{cworst}91.6 & \cellcolor{cpoor}51.0 & \cellcolor{cpoor}240 & \cellcolor{cpoor}32.4 & \cellcolor{cpoor}48.4 & \cellcolor{cpoor}258 & \cellcolor{cworst}59.8 & \cellcolor{cpoor}49.7 & \cellcolor{cpoor}250 & \cellcolor{cworst}61.3 \\
+% Orig Paper \cite{wiesner2026modeling} & \cellcolor{cmed}58.2 & \cellcolor{cmed}81 & \cellcolor{cmed}16.9 & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+% \midrule
+% % WavLM (reproduction) & \cellcolor{cmed}59.0 & \cellcolor{cmed}77 & \cellcolor{cmed}16.6 & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+% \textbf{New Model + Ablations} \\
+% \midrule
+% WavLM 8spk (72k) & \cellcolor{cgood}59.9 & \cellcolor{cgood}72 & \cellcolor{cgood}13.0 & \cellcolor{cgood}58.3 & \cellcolor{cgood}115 & \cellcolor{cgood}9.3 & \cellcolor{cgood}58.6 & \cellcolor{cgood}104 & \cellcolor{cgood}17.4 & \cellcolor{cgood}58.9 & \cellcolor{cgood}97 & \cellcolor{cgood}13.2 \\
+% WavLM 8spk (72k) (token only) & \cellcolor{cgood}59.7 & \cellcolor{cgood}73 & \cellcolor{cgood}13.0 & \cellcolor{cmed}57.8 & \cellcolor{cmed}123 & \cellcolor{cmed}10.6 & \cellcolor{cmed}58.0 & \cellcolor{cmed}116 & \cellcolor{cmed}19.1 & \cellcolor{cmed}58.5 & \cellcolor{cmed}104 & \cellcolor{cmed}14.2 \\
+% \midrule
+% CTC graph per supervision & \cellcolor{cgood}59.4 & \cellcolor{cgood}75 & \cellcolor{cmed}14.6 & \cellcolor{cmed}56.2 & \cellcolor{cpoor}135 & \cellcolor{cpoor}14.5 & \cellcolor{cmed}56.1 & \cellcolor{cpoor}134 & \cellcolor{cpoor}26.8 & \cellcolor{cmed}57.2 & \cellcolor{cpoor}115 & \cellcolor{cpoor}18.6 \\
+% \midrule
+% \textbf{Long-form Tricks} \\
+% \midrule
+% WavLM 8spk (72k) + 1-state topo & \cellcolor{cgood}60.1 & \cellcolor{cgood}71 & \cellcolor{cbest}\textbf{12.7} & \cellcolor{cgood}58.4 & \cellcolor{cgood}113 & \cellcolor{cgood}9.1 & \cellcolor{cgood}58.6 & \cellcolor{cgood}102 & \cellcolor{cbest}\textbf{17.2} & \cellcolor{cgood}59.0 & \cellcolor{cgood}95 & \cellcolor{cbest}\textbf{13.0} \\
+% \quad + 30\% frames & \cellcolor{cgood}60.1 & \cellcolor{cgood}71 & \cellcolor{cbest}\textbf{12.7} & \cellcolor{cmed}57.0 & \cellcolor{cmed}121 & \cellcolor{cgood}9.6 & \cellcolor{cmed}57.5 & \cellcolor{cmed}109 & \cellcolor{cgood}17.4 & \cellcolor{cmed}58.2 & \cellcolor{cmed}100 & \cellcolor{cgood}13.2 \\
+% \quad \quad + 10s graph chunks & \cellcolor{cgood}60.1 & \cellcolor{cgood}71 & \cellcolor{cbest}\textbf{12.7} & \cellcolor{cmed}57.6 & \cellcolor{cgood}117 & \cellcolor{cgood}9.4 & \cellcolor{cmed}57.9 & \cellcolor{cgood}105 & \cellcolor{cgood}17.3 & \cellcolor{cmed}58.5 & \cellcolor{cgood}97 & \cellcolor{cgood}13.1 \\
+% WAVLM 8spk (72k) + BPE trim & \cellcolor{cbest}\textbf{64.1} & \cellcolor{cbest}\textbf{63} & \cellcolor{cgood}12.8 & \cellcolor{cbest}\textbf{60.9} & \cellcolor{cbest}\textbf{105} & \cellcolor{cbest}\textbf{9.0} & \cellcolor{cbest}\textbf{61.3} & \cellcolor{cbest}\textbf{96} & \cellcolor{cgood}17.5 & \cellcolor{cbest}\textbf{62.1} & \cellcolor{cbest}\textbf{88} & \cellcolor{cgood}13.1 \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+
+% -------------------------------------
+\begin{table}[t]
+\centering
+\caption{Alignment performance across datasets. Boundary Error (BE) is measured in ms. Colors indicate relative quality within a given dataset (green is good, red is bad). + chunks refers to the lazy graph chunks in Section \ref{sec:longform_tricks}.}
+\label{tab:baselines_with_average_granular}
+\setlength{\tabcolsep}{1pt}
+\renewcommand{\arraystretch}{0.90}
+
+\begin{tabular}{@{}l|ccc|ccc|ccc@{}}
+\toprule
+& \multicolumn{3}{c|}{\textbf{dev3spk}}
+& \multicolumn{3}{c|}{\textbf{NSF dev}}
+& \multicolumn{3}{c}{\textbf{NSF eval}} \\
+\cmidrule(lr){2-4}
+\cmidrule(lr){5-7}
+\cmidrule(l){8-10}
+\textbf{Model}
+& IoU$\uparrow$ & BE$\downarrow$ & $\tau$\%$\downarrow$
+& IoU$\uparrow$ & BE$\downarrow$ & $\tau$\%$\downarrow$
+& IoU$\uparrow$ & BE$\downarrow$ & $\tau$\%$\downarrow$ \\
+\midrule
+
+\multicolumn{10}{@{}l}{\textbf{Baselines}} \\[-1pt]
+\midrule
+Uniform rate
+& \cellcolor{cworst}15.9
+& \cellcolor{cworst}375
+& \cellcolor{cpoor}77.4
+& \cellcolor{cworst}38.0
+& \cellcolor{cpoor}170
+& \cellcolor{cmed}11.2
+& \cellcolor{cworst}39.8
+& \cellcolor{cpoor}185
+& \cellcolor{cmed}17.9 \\
+
+MFA~\cite{mcauliffe2017montreal}
+& \cellcolor{cpoor}38.2
+& \cellcolor{cworst}332
+& \cellcolor{cworst}113.1
+& \cellcolor{cpoor}50.2
+& \cellcolor{cworst}307
+& \cellcolor{cworst}38.8
+& \cellcolor{cpoor}45.8
+& \cellcolor{cworst}330
+& \cellcolor{cworst}73.5 \\
+
+W2V2 CTC~\cite{bain2023whisperx}
+& \cellcolor{cpoor}49.8
+& \cellcolor{cpoor}251
+& \cellcolor{cworst}91.6
+& \cellcolor{cpoor}51.0
+& \cellcolor{cpoor}240
+& \cellcolor{cpoor}32.4
+& \cellcolor{cpoor}48.4
+& \cellcolor{cpoor}258
+& \cellcolor{cworst}59.8 \\
+
+Shuffle~\cite{wiesner2026modeling}
+& \cellcolor{cmed}58.2
+& \cellcolor{cmed}81
+& \cellcolor{cmed}16.9
+& -- & -- & --
+& -- & -- & -- \\
+\midrule
+\addlinespace[1pt]
+\multicolumn{10}{@{}l}{\textbf{New Shuffle Models}} \\[-1pt]
+\midrule
+WavLM 8spk
+& \cellcolor{cgood}59.9
+& \cellcolor{cgood}72
+& \cellcolor{cgood}13.0
+& \cellcolor{cgood}58.3
+& \cellcolor{cgood}115
+& \cellcolor{cgood}9.3
+& \cellcolor{cgood}58.6
+& \cellcolor{cgood}104
+& \cellcolor{cgood}17.4 \\
+
+\quad Token only
+& \cellcolor{cgood}59.7
+& \cellcolor{cgood}73
+& \cellcolor{cgood}13.0
+& \cellcolor{cmed}57.8
+& \cellcolor{cmed}123
+& \cellcolor{cmed}10.6
+& \cellcolor{cmed}58.0
+& \cellcolor{cmed}116
+& \cellcolor{cmed}19.1 \\
+
+\quad CTC graph/sup.
+& \cellcolor{cgood}59.4
+& \cellcolor{cgood}75
+& \cellcolor{cmed}14.6
+& \cellcolor{cmed}56.2
+& \cellcolor{cpoor}135
+& \cellcolor{cpoor}14.5
+& \cellcolor{cmed}56.1
+& \cellcolor{cpoor}134
+& \cellcolor{cpoor}26.8 \\
+\midrule
+\addlinespace[1pt]
+\multicolumn{10}{@{}l}{\textbf{Long-form Tricks}} \\[-1pt]
+\midrule
+\ \ + 1-state topo.
+& \cellcolor{cgood}60.1
+& \cellcolor{cgood}71
+& \cellcolor{cbest}\textbf{12.7}
+& \cellcolor{cgood}58.4
+& \cellcolor{cgood}113
+& \cellcolor{cgood}9.1
+& \cellcolor{cgood}58.6
+& \cellcolor{cgood}102
+& \cellcolor{cbest}\textbf{17.2} \\
+
+\ \ \ \ + 30\% frames
+& \cellcolor{cgood}60.1
+& \cellcolor{cgood}71
+& \cellcolor{cbest}\textbf{12.7}
+& \cellcolor{cmed}57.0
+& \cellcolor{cmed}121
+& \cellcolor{cgood}9.6
+& \cellcolor{cmed}57.5
+& \cellcolor{cmed}109
+& \cellcolor{cgood}17.4 \\
+
+\ \ \ \ \ \  + chunks
+& \cellcolor{cgood}60.1
+& \cellcolor{cgood}71
+& \cellcolor{cbest}\textbf{12.7}
+& \cellcolor{cmed}57.6
+& \cellcolor{cgood}117
+& \cellcolor{cgood}9.4
+& \cellcolor{cmed}57.9
+& \cellcolor{cgood}105
+& \cellcolor{cgood}17.3 \\
+
+\quad + BPE trim
+& \cellcolor{cbest}\textbf{64.1}
+& \cellcolor{cbest}\textbf{63}
+& \cellcolor{cgood}12.8
+& \cellcolor{cbest}\textbf{60.9}
+& \cellcolor{cbest}\textbf{105}
+& \cellcolor{cbest}\textbf{9.0}
+& \cellcolor{cbest}\textbf{61.3}
+& \cellcolor{cbest}\textbf{96}
+& \cellcolor{cgood}17.5 \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+

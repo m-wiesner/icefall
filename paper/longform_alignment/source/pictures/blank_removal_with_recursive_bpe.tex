@@ -1,0 +1,84 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\pgfplotsset{scale only axis}
+
+% -------------------------------------------------------------
+% PRIMARY AXIS (Left): Boundary Error (BE)
+% -------------------------------------------------------------
+\begin{axis}[
+    width=7.2cm,
+    height=4.8cm,
+    xlabel={Actual Tokens Removed (\%)},
+    ylabel={Boundary Error (frames)},
+    xmin=-2, xmax=62,
+    ymin=105, ymax=155,
+    axis y line*=left,
+    y label style={font=\small, color=red!70!black},
+    x label style={font=\small},
+    tick label style={font=\xs},
+    grid=major,
+    grid style={dotted, gray!50},
+    legend style={
+        at={(0.5, 1.15)},
+        anchor=south,
+        legend columns=2,
+        font=\tiny,
+        draw=none,
+        fill=none
+    }
+]
+
+\addplot[color=red!70!black, mark=square*, thick, mark size=2pt] coordinates {
+    (0.0, 112)
+    (17.7, 113)
+    (32.7, 115)
+    (48.8, 129)
+    (58.0, 146)
+};
+\addlegendentry{BE (frames) $\downarrow$}
+
+\end{axis}
+
+% -------------------------------------------------------------
+% SECONDARY AXIS (Right): Kendall-tau Distance
+% -------------------------------------------------------------
+\begin{axis}[
+    width=7.2cm,
+    height=4.8cm,
+    xmin=-2, xmax=62,
+    hide x axis,
+    ylabel={Kendall-$\tau$ Distance},
+    ymin=0.120, ymax=0.138,
+    axis y line*=right,
+    y label style={font=\small, color=green!50!black},
+    tick label style={font=\xs},
+    legend style={
+        at={(0.5, 1.15)},
+        anchor=south,
+        legend columns=2,
+        font=\tiny,
+        draw=none,
+        fill=none
+    }
+]
+
+% Legend dummy entry for left-axis metric
+\addlegendimage{color=red!70!black, mark=square*, thick, mark size=2pt}
+\addlegendentry{BE (frames) $\downarrow$}
+
+\addplot[color=green!50!black, mark=triangle*, thick, mark size=2.4pt] coordinates {
+    (0.0, 0.1243)
+    (17.7, 0.1246)
+    (32.7, 0.1253)
+    (48.8, 0.1301)
+    (58.0, 0.1349)
+};
+\addlegendentry{Kendall-$\tau \downarrow$}
+
+\end{axis}
+
+\end{tikzpicture}
+\caption{Effect of token pruning rate (\texttt{max\_length}=4) on Boundary Error (BE) and Kendall-$\tau$ distance on the \texttt{NOTSOFAR DEV} benchmark[cite: 5]. Both metrics remain stable up to $\sim 33\%$ actual removal before degradation accelerates[cite: 5].}
+\label{fig:notsofar_token_removal}
+\end{figure}

@@ -1,0 +1,5 @@
+\subsection{Diarization Metrics}
+
+\textbf{WDER} -- As in \cite{shafey19_interspeech}, we use the word diarization error rate. However, that version is flawed and is primarily useful when there are very few deletions since they are not counted in the metric. Since we measure the diarization performance conditioned on the ground-truth transcripts, there are no deletions and we can compute the metric over all words in the reference.
+
+\textbf{Partition Error Rate} -- The WDER does not make much sense as a metric since the speaker labels are computed on a segment level. We can directly measure the partition error rate (PER), which measures if the segments within the utterance group were correctly partitioned. The problem with corpora such as LibriMix and LibrispeechMix is that there are very few segments per utterance group, so the number of partitions in the case of Libri2Mix or the 2-speaker LibrispeechMix set is 1. We created two new synthetic test sets to better evaluate the partition accuracy. They each have 8 segments -- for 2 speakers that means 128 possible partitions, and for 3 speakers 966. 

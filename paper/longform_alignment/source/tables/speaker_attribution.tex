@@ -1,0 +1,44 @@
+  \begin{table}[t]
+    \centering
+    \setlength{\tabcolsep}{2pt}
+    \caption{Long-form speaker-attribution performance measured by WDER
+    (\%). Chunk-local speaker slots and recording-level speaker identities
+    are mapped using oracle permutations.}
+    \label{tab:longform_wder}
+    \begin{tabular}{@{}l|r|r|r|r@{}}
+      \toprule
+      Attribution method
+        & NSF Dev
+        & NSF Eval
+        & AMI Dev
+        & AMI Test \\
+      \midrule
+      Segment
+        & \textbf{22.0}
+        & 32.8
+        & \textbf{21.1}
+        & \textbf{17.6} \\
+      Segment + BPE trim
+        & \textbf{22.0}
+        & \textbf{32.6}
+        & 21.2
+        & 17.6 \\
+      Word + BPE trim
+        & 24.5
+        & 35.2
+        & 23.9
+        & 20.4 \\
+        \midrule
+        Local Oracle maj. spk & 36.6   &    48.3    &  34.0  &     30.4 \\
+    % Global Oracle maj. spk
+    % & 58.6 & 63.8 & 64.8 & 60.9 \\
+    
+      % Random spk / seg
+      %   & 69.0
+      %   & 68.9
+      %   & 70.1
+      %   & 69.2 \\
+      \bottomrule
+    \end{tabular}
+    \vspace{-4mm}
+  \end{table}

@@ -1,5 +1,22 @@
 # Shuffle CTC for multi-talker ASR
 
+## Long-form alignment paper
+
+For the released WavLM 8-speaker model, exact experiment matrix, artifact
+checks, long-form alignment jobs, expected result tables, and manuscript
+build, start at
+[`repro/longform_alignment/README.md`](repro/longform_alignment/README.md).
+The one-command entry point is:
+
+```bash
+python repro/longform_alignment/reproduce.py list
+```
+
+The `paper/longform-multitalker-alignment` branch is intentionally limited to
+the code and assets required by that paper. Alternative encoders, abandoned
+ablations, and exploratory results are preserved on
+`archive/mtasr-experiments-2026`; see the repository-level `BRANCHES.md`.
+
 This directory reconstructs the paper's multi-talker ASR systems, beginning
 with the representative WavLM Large, length-ordered shuffle-loss experiment.
 Source and assets needed to understand and run the systems are included.

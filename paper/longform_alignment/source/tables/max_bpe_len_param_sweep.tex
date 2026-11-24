@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Parameter sweep over subword \texttt{max length} constraints evaluated on the \texttt{dev3spk} benchmark. BE is measured in milliseconds.}
+\label{tab:max_length_sweep}
+\begin{tabular}{ccccc}
+\toprule
+\textbf{max len} & \textbf{avg len} & \textbf{IoU (\%)} $\uparrow$ & \textbf{BE} $\downarrow$ & \textbf{$\tau$  (\%)} $\downarrow$ \\
+\midrule
+2  & 1.7 & 58.6 & 105 & 34.9 \\
+3  & 2.1 & 63.4 & 69  & 16.9 \\
+4  & 2.4 & \textbf{64.1} & \textbf{63}  & 12.8 \\
+5  & 2.7 & 63.8 & \textbf{63}  & \textbf{12.0} \\
+6  & 3.0 & 62.7 & 65  & 12.2 \\
+\midrule
+\textit{None} & 3.4 & 59.9 & 72  & 13.0 \\
+\bottomrule
+\end{tabular}
+\end{table}

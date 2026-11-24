@@ -1,0 +1,155 @@
+% Template for ICASSP-2026 paper; to be used with:
+%          spconf.sty  - ICASSP/ICIP LaTeX style file, and
+%          IEEEbib.bst - IEEE bibliography style file.
+% --------------------------------------------------------------------------
+\documentclass{article}
+\usepackage{spconf,amsmath,graphicx,hyperref}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{shuffle}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,automata,positioning}
+\usepackage{makecell}
+
+\usetikzlibrary{quotes}
+\usepackage{ifthen}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\usepackage{stmaryrd}
+\usetikzlibrary{automata, positioning}
+\usepackage{subcaption}
+
+\usepackage[table]{xcolor}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\pgfplotsset{compat=1.18}
+
+
+% Define soft pastel colors for visual heatmap
+\definecolor{posbest}{HTML}{A5D6A7} % Darker pastel green (Best in column)
+\definecolor{posgood}{HTML}{E8F5E9} % Very light green (Strong performance)
+\definecolor{neutral}{HTML}{FFF9C4} % Light pastel yellow (Moderate baseline)
+\definecolor{negpoor}{HTML}{FFCDD2} % Light pastel red (Poor baseline)
+
+% Define 5-tier granular heatmap palette
+\definecolor{cbest}{HTML}{81C784}  % Darker pastel green (Best in column)
+\definecolor{cgood}{HTML}{C8E6C9}  % Light pastel green (Strong performance)
+\definecolor{cmed}{HTML}{FFF59D}   % Soft pastel yellow (Moderate/Average)
+\definecolor{cpoor}{HTML}{FFE0B2}  % Soft pastel orange (Below average)
+\definecolor{cworst}{HTML}{FFCDD2} % Soft pastel red (Poor/Worst)
+
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+% Publication color palette
+\definecolor{inputbg}{HTML}{E8F0FE}
+\definecolor{inputborder}{HTML}{1A73E8}
+\definecolor{retainedbg}{HTML}{E6F4EA}
+\definecolor{retainedborder}{HTML}{137333}
+\definecolor{graphbg1}{HTML}{FEF7E0}
+\definecolor{graphborder1}{HTML}{B06000}
+\definecolor{graphbg2}{HTML}{FCE8E6}
+\definecolor{graphborder2}{HTML}{C5221F}
+
+\newcommand{\bigshuffle}{\mathop{\scalebox{1.8}{$\shuffle$}}\displaylimits}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% Example definitions.
+% --------------------
+\def\x{{\mathbf x}}
+\def\L{{\cal L}}
+
+% Title.
+% ------
+\title{Long-form Speaker Attributed Forced Alignment with Shuffles}
+
+% the order of authors here must exactly match the order entered into the paper submission system
+% note that the COMPLETE list of authors MUST be entered into the paper submission system at the outset, including when submitting your manuscript for double-blind review
+% \author[affiliation={1,2}]{Matthew}{Wiesner}
+% \author[affiliation={3}]{Samuele}{Cornell}
+% \author[affiliation={3, 4}]{Alexander}{Polok}
+% \author[affiliation={2}]{Lucas}{Ondel Yang}
+% \author[affiliation={4}]{Lukáš}{Burget}
+
+
+% Single address.
+% ---------------
+\name{Matthew Wiesner$^{1,2}$ \qquad Alexander Polok$^{3}$ \qquad Samuele Cornell$^{4}$ \\
+      Lucas Ondel Yang$^{2}$ \qquad Sanjeev Khudanpur$^{1}$ \qquad Luk\'{a}\v{s} Burget$^{3}$
+}
+
+\address{$^{1}$Johns Hopkins University, USA \qquad
+         $^{2}$LISN, Universit\'{e} Paris-Saclay, CNRS, France \\
+         $^{3}$Brno University of Technology, Czechia \qquad
+         $^{4}$Carnegie Mellon University, USA}
+%\{wiesner,khudanpur\}@jhu.edu, lucas.ondel@cnrs.fr, samuele.cornell@ieee.org, \\
+%\{ipoloka,burget\}@fit.vutbr.cz}
+%
+% For example:
+% ------------
+%\address{School\\
+%	Department\\
+%	Address}
+%
+% Two addresses (uncomment and modify for two-address case).
+% ----------------------------------------------------------
+%\twoauthors
+%  {A. Author-one, B. Author-two\sthanks{Thanks to XYZ agency for funding.}}
+%	{School A-B\\
+%	Department A-B\\
+%	Address A-B}
+%  {C. Author-three, D. Author-four\sthanks{The fourth author performed the work
+%	while at ...}}
+%	{School C-D\\
+%	Department C-D\\
+%	Address C-D}
+%
+\begin{document}
+\ninept
+
+\maketitle
+
+\begin{abstract}
+This paper explores long-form alignment of audio to multi-talker transcripts using the recently proposed shuffle model for multi-talker automatic speech recognition (ASR) \cite{wiesner2026modeling}. Multi-talker alignment involves both aligning tokens to speech frames and attributing them to the correct speaker or output stream. We consider alignment when transcripts lack speaker labels. Long-form alignment is challenging due to alignment drift and the memory required to maintain a valid path through the transcript; the larger alignment graphs corresponding to multi-talker transcripts exacerbate this problem in multi-talker scenarios. We describe techniques for efficient long-form multi-talker alignment and for re-purposing frame-level speaker predictions from speaker-attributed shuffle models to attribute overlapped transcripts with speaker labels. On out-of-domain evaluations on full AMI recordings we achieve mean per-recording boundary errors of 108 ms and 17.6\% word diarization error rate\footnote{with oracle speaker tracing across chunks}. We release our models to facilitate preparation of multi-talker data. \footnote{\url{https://github.com/m-wiesner/icefall/tree/feature/shuffle-ctc-recipe/egs/librispeech/MTASR}}
+\end{abstract}
+%
+\begin{keywords}
+Multi-talker Speech, Forced Alignment, Speaker Attribution
+\end{keywords}
+
+\section{Introduction}
+\input{sections/introduction}
+%
+%\section{Introduction}
+%\input{sections/introduction}
+
+%\section{Related Work}
+%\input{sections/related_work}
+\vspace{-2mm}
+\section{Multi-Talker Forced Alignment}
+\input{sections/problem}
+\input{sections/method}
+\section{Experiments}
+\input{tables/alignment_baselines}
+\input{tables/longform_alignment_v2}
+\input{tables/long_form_alignment_AMI}
+\input{sections/experiments}
+
+\section{Results}
+\input{sections/results}
+\section{Conclusion}
+\input{sections/conclusion.tex}
+%\section{Acknowledgements}
+
+
+% References should be produced using the bibtex program from suitable
+% BiBTeX files (here: strings, refs, manuals). The IEEEbib.bst bibliography
+% style file from IEEE produces unsorted bibliography list.
+% -------------------------------------------------------------------------
+\bibliographystyle{IEEEbib}
+\bibliography{refs_compact_ieee_etal}
+
+\end{document}

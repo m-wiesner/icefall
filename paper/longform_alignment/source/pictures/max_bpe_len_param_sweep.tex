@@ -1,0 +1,112 @@
+\documentclass{article}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\pgfplotsset{scale only axis}
+
+% -------------------------------------------------------------
+% PRIMARY AXIS (Left): IoU (%) and Boundary Error (BE)
+% -------------------------------------------------------------
+\begin{axis}[
+    width=7.2cm,
+    height=4.8cm,
+    symbolic x coordinates={2, 3, 4, 5, 6, -1},
+    xtick=data,
+    xticklabels={2, 3, 4, 5, 6, -1 (None)},
+    xlabel={\texttt{max\_length} Constraint},
+    ylabel={IoU (\%) / BE (frames)},
+    ymin=50, ymax=115,
+    axis y line*=left,
+    y label style={font=\small, color=black},
+    x label style={font=\small},
+    tick label style={font=\xs},
+    grid=major,
+    grid style={dotted, gray!50},
+    legend style={
+        at={(0.5, 1.18)},
+        anchor=south,
+        legend columns=3,
+        font=\tiny,
+        draw=none,
+        fill=none
+    }
+]
+
+% 1. IoU (%)
+\addplot[color=blue!70!black, mark=*, thick, mark size=2pt] coordinates {
+    (2, 58.6)
+    (3, 63.4)
+    (4, 64.1)
+    (5, 63.8)
+    (6, 62.7)
+    (-1, 59.9)
+};
+\addlegendentry{IoU (\%) $\uparrow$}
+
+% 2. Boundary Error (BE)
+\addplot[color=red!70!black, mark=square*, thick, mark size=2pt] coordinates {
+    (2, 105)
+    (3, 69)
+    (4, 63)
+    (5, 63)
+    (6, 65)
+    (-1, 72)
+};
+\addlegendentry{BE (frames) $\downarrow$}
+
+% Reference line for optimal setting (max_length = 4)
+\draw[dashed, gray!70] (axis cs:4, 50) -- (axis cs:4, 115);
+
+\end{axis}
+
+% -------------------------------------------------------------
+% SECONDARY AXIS (Right): Kendall-tau Distance
+% -------------------------------------------------------------
+\begin{axis}[
+    width=7.2cm,
+    height=4.8cm,
+    symbolic x coordinates={2, 3, 4, 5, 6, -1},
+    xtick=data,
+    hide x axis,
+    ylabel={Kendall-$\tau$ Distance},
+    ymin=0.08, ymax=0.38,
+    axis y line*=right,
+    y label style={font=\small, color=green!40!black},
+    tick label style={font=\xs},
+    legend style={
+        at={(0.5, 1.18)},
+        anchor=south,
+        legend columns=3,
+        font=\tiny,
+        draw=none,
+        fill=none
+    }
+]
+
+% Invisible dummy plots to align legend entries across axes
+\addlegendimage{color=blue!70!black, mark=*, thick, mark size=2pt}
+\addlegendentry{IoU (\%) $\uparrow$}
+\addlegendimage{color=red!70!black, mark=square*, thick, mark size=2pt}
+\addlegendentry{BE (frames) $\downarrow$}
+
+% 3. Kendall-tau Distance
+\addplot[color=green!50!black, mark=triangle*, thick, mark size=2.4pt] coordinates {
+    (2, 0.34876)
+    (3, 0.16921)
+    (4, 0.12765)
+    (5, 0.11987)
+    (6, 0.12187)
+    (-1, 0.12982)
+};
+\addlegendentry{Kendall-$\tau \downarrow$}
+
+\end{axis}
+
+\end{tikzpicture}
+\caption{Single-plot parameter sweep over \texttt{max\_length} settings (where $-1$ represents unconstrained length). The dashed vertical line highlights the optimal trade-off at $\texttt{max\_length} = 4$.}
+\label{fig:combined_max_length_sweep}
+\end{figure}

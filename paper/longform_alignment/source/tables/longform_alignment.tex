@@ -1,0 +1,81 @@
+
+
+%   \begin{table*}[t]
+%     \centering
+%     \caption{Long-form speaker-attributed alignment ablation on the full
+%     single-channel NOTSOFAR development recordings using Parakeet and the
+%     custom exact Viterbi implementation. Corpus 30\% denotes corpus-level
+%     blank-frame pruning calibrated to retain 30\% of frames on average.}
+%     \label{tab:notsofar-parakeet-longform-ablation}
+%     \small
+%     \setlength{\tabcolsep}{5pt}
+%     \begin{tabular}{clccccc}
+%       \toprule
+%       \# & Configuration
+%          & Mean IoU $\uparrow$
+%          & Boundary error $\downarrow$
+%          & Kendall dist.\ $\downarrow$
+%          & RTF $\downarrow$
+%          & Peak GPU $\downarrow$ \\
+%       \midrule
+%       1 & Training topology, all frames
+%         & --- & --- & --- & --- & OOM $>32$ GiB \\
+
+%       2 & 1-state topology, all frames
+%         & 54.2 & 492 ms & 0.2258 & 0.0353 & 16.99 GiB \\
+
+%       3 & (2) + corpus 30\% blank removal
+%         & 51.8 & 460 ms & 0.2335 & 0.0116 & 11.31 GiB \\
+
+%       4 & (3) + transcript vocabulary
+%         & 51.8 & 460 ms & 0.2335 & 0.0111 & 11.11 GiB \\
+
+%       5 & (4) + center-cropped inference
+%         & 49.7 & 524 ms & 0.2897 & 0.0082 & 9.82 GiB \\
+
+%       6 & (5) + local vocabulary mask
+%         & 49.8 & 267 ms & 0.2927 & 0.0090 & 9.85 GiB \\
+
+%       7 & (6) + chunked graph construction
+%         & 54.0 & 182 ms & 0.2256 & 0.0152 & 2.67 GiB \\
+%       \bottomrule
+%     \end{tabular}
+%   \end{table*}
+
+% \begin{table*}[t]
+%   \centering
+%   \small
+%   \begin{tabular}{clrrrrr}
+%   \toprule
+%    & Configuration
+%    & Mean IoU $\uparrow$
+%    & Boundary $\downarrow$
+%    & Kendall $\downarrow$
+%    & RTFx $\uparrow$
+%    & GPU \\
+%   \midrule
+%   1 & Training topology, all frames
+%     & -- & -- & -- & -- & OOM \\
+%   2 & 1-state, all frames
+%     & -- & -- & -- & -- & OOM \\
+%   3 & 1-state, corpus 30\%
+%     & 53.3 & 173 ms & 0.3772 & 13.3 & 19.78 GiB \\
+%   4 & (3) + transcript remapping
+%     & 53.3 & 173 ms & 0.3772 & 12.8 & 19.57 GiB \\
+%   5 & (4) + center crop
+%     & 50.7 & 280 ms & 0.4459 & 13.0 & 18.98 GiB \\
+%   6 & (5) + local mask
+%     & 50.7 & 248 ms & 0.4460 & 12.5 & 19.02 GiB \\
+%   7 & (6) + graph chunks
+%     & 54.9 & 149 ms & 0.3657 & 33.6 & 2.90 GiB \\
+%   8 & (7), Whisper SpAShL
+%     & \textbf{57.6} & \textbf{115 ms} & \textbf{0.2573}
+%     & 23.7 & 3.01 GiB \\
+%   9 & (7), Whisper Shuffle-only, 96k
+%     & \multicolumn{5}{c}{running as job 656503} \\
+%   \bottomrule
+%   \end{tabular}
+%   \caption{Calibrated long-form alignment on NOTSOFAR Eval. RTFx includes
+%   neural inference, graph construction, and Viterbi search, while excluding
+%   model loading and initial data-loader setup.}
+% \end{table*}

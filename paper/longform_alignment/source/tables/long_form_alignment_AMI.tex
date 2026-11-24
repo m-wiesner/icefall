@@ -1,0 +1,73 @@
+\begin{table*}[!th]
+\centering
+\caption{Full recording alignment performance.}
+\label{tab:longform_ami}
+\setlength{\tabcolsep}{2.4 pt}
+\renewcommand{\arraystretch}{0.92}
+
+%\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}l|ccc|ccc|ccc|ccc@{}}
+\toprule
+& \multicolumn{3}{c|}{\textbf{NSF dev}}
+& \multicolumn{3}{c|}{\textbf{NSF eval}}
+& \multicolumn{3}{c|}{\textbf{AMI dev}}
+& \multicolumn{3}{c}{\textbf{AMI eval}} \\
+\cmidrule(lr){2-4}
+\cmidrule(lr){5-7}
+\cmidrule(lr){8-10}
+\cmidrule(l){11-13}
+
+\textbf{Model: WavLM 8spk}
+& IoU$\uparrow$ & BE$\downarrow$ & $\tau$\%$\downarrow$
+& IoU$\uparrow$ & BE$\downarrow$ & $\tau$\%$\downarrow$
+& IoU$\uparrow$ & BE$\downarrow$ & $\tau$\%$\downarrow$
+& IoU$\uparrow$ & BE$\downarrow$ & $\tau$\%$\downarrow$ \\
+\midrule
+
+Speaker Attributed
+& \cellcolor{cgood}57.4
+& \cellcolor{cgood}123
+& \cellcolor{cmed}12.6
+& \cellcolor{cmed}57.8
+& \cellcolor{cmed}108
+& \cellcolor{cgood}19.2
+& \cellcolor{cmed}61.5
+& \cellcolor{cmed}109
+& \cellcolor{cmed}9.2
+& \cellcolor{cmed}61.1
+& \cellcolor{cgood}118
+& \cellcolor{cbest}\textbf{10.4} \\
+
+Token Only
+& \cellcolor{cmed}57.2
+& \cellcolor{cmed}124
+& \cellcolor{cmed}12.6
+& \cellcolor{cmed}57.8
+& \cellcolor{cmed}108
+& \cellcolor{cbest}\textbf{18.9}
+& \cellcolor{cgood}61.6
+& \cellcolor{cmed}109
+& \cellcolor{cbest}\textbf{9.1}
+& \cellcolor{cgood}61.2
+& \cellcolor{cmed}122
+& \cellcolor{cmed}10.7 \\
+
+Speaker Attributed + BPE trim
+& \cellcolor{cbest}\textbf{60.0}
+& \cellcolor{cbest}\textbf{115}
+& \cellcolor{cbest}\textbf{12.5}
+& \cellcolor{cbest}\textbf{61.0}
+& \cellcolor{cbest}\textbf{100}
+& \cellcolor{cmed}19.4
+& \cellcolor{cbest}\textbf{64.7}
+& \cellcolor{cbest}\textbf{94}
+& \cellcolor{cmed}9.2
+& \cellcolor{cbest}\textbf{64.1}
+& \cellcolor{cbest}\textbf{103}
+& \cellcolor{cgood}10.5 \\
+
+\bottomrule
+\end{tabular}%
+%}
+\end{table*}
+\vspace{-8pt}

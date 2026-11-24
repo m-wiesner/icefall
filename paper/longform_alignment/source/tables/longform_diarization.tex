@@ -1,0 +1,25 @@
+\begin{table}[t]
+  \centering
+  \caption{Long-form NOTSOFAR alignment and diarization using the Parakeet
+  token-only alignment and token-derived VBx speaker attribution with the
+  oracle number of speakers. Calibration offsets were estimated on Dev and
+  applied to both timing evaluation and embedding extraction. DER uses
+  reference supervision boundaries with a 250\,ms collar.}
+  \label{tab:notsofar_parakeet_vbx_calibration}
+  \begin{tabular}{llrrrr}
+  \toprule
+  Set & Calibration
+      & Mean IoU $\uparrow$
+      & Boundary $\downarrow$
+      & WDER $\downarrow$
+      & DER $\downarrow$ \\
+      & & (\%) & (ms) & (\%) & (\%) \\
+  \midrule
+  Dev  & None        & 53.9 & 181 & \textbf{28.09} & \textbf{27.27} \\
+  Dev  & Dev offsets & \textbf{56.3} & \textbf{176} & 29.28 & 28.10 \\
+  \midrule
+  Eval & None        & 52.4 & 151 & 42.57 & \textbf{36.87} \\
+  Eval & Dev offsets & \textbf{55.0} & \textbf{146} & \textbf{42.05} & 37.24 \\
+  \bottomrule
+  \end{tabular}
+  \end{table}

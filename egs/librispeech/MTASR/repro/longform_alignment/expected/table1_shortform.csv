@@ -1,0 +1,12 @@
+model,dev3spk_iou,dev3spk_be_ms,dev3spk_kendall_pct,nsf_dev_iou,nsf_dev_be_ms,nsf_dev_kendall_pct,nsf_eval_iou,nsf_eval_be_ms,nsf_eval_kendall_pct
+Uniform rate,15.9,375,77.4,38.0,170,11.2,39.8,185,17.9
+MFA,38.2,332,113.1,50.2,307,38.8,45.8,330,73.5
+W2V2 CTC,49.8,251,91.6,51.0,240,32.4,48.4,258,59.8
+Shuffle previous work,58.2,81,16.9,,,,,,
+WavLM 8spk,59.9,72,13.0,58.3,115,9.3,58.6,104,17.4
+Token only,59.7,73,13.0,57.8,123,10.6,58.0,116,19.1
+CTC graph per supervision,59.4,75,14.6,56.2,135,14.5,56.1,134,26.8
+One-state topology,60.1,71,12.7,58.4,113,9.1,58.6,102,17.2
+Retain 30 percent frames,60.1,71,12.7,57.0,121,9.6,57.5,109,17.4
+Lazy graph chunks,60.1,71,12.7,57.6,117,9.4,57.9,105,17.3
+BPE trim,64.1,63,12.8,60.9,105,9.0,61.3,96,17.5

@@ -1,0 +1,104 @@
+% Required package: booktabs
+% All values are percentages except boundary error and Kendall distance.
+
+\begin{table*}[t]
+  \centering
+  \caption{Forced-alignment results. The FastMSS results are installation-check
+  experiments on synthetic speech. NOTSOFAR results use full single-channel
+  recordings and exact Viterbi search. Calibration offsets are learned on the
+  NOTSOFAR development set.}
+  \label{tab:alignment-main}
+  \small
+  \begin{tabular}{llrrrr}
+    \toprule
+    Data & System & \shortstack{Mean\\IoU ($\uparrow$)} &
+      \shortstack{Boundary\\error (ms) ($\downarrow$)} &
+      \shortstack{Kendall\\distance ($\downarrow$)} &
+      \shortstack{Failed\\cuts ($\downarrow$)} \\
+    \midrule
+    FastMSS & Fixed, speaker-attributed       & 62.0 & 65 & 0.00160 & 0.0 \\
+            & Fixed, token-only               & 61.5 & 66 & 0.00164 & 0.0 \\
+            & Brownian, speaker-attributed    & 60.7 & 67 & 0.00166 & 0.0 \\
+    \midrule
+    NOTSOFAR dev & Parakeet, graph chunks     & 54.0 & 182 & 0.2256 & 0.0 \\
+    NOTSOFAR dev & Whisper, graph chunks      & 52.3 & 164 & 0.1788 & 0.0 \\
+    NOTSOFAR dev & Whisper, calibrated        & \textbf{56.9} & \textbf{152} & 0.1788 & 0.0 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+  \centering
+  \caption{Long-form speaker-attributed alignment ablation on the full
+  single-channel NOTSOFAR development recordings. Rows accumulate changes
+  from top to bottom. Frame retention uses a corpus-level threshold chosen to
+  retain 30\% of frames on average. Center-crop inference uses a 20-s core in
+  a 30-s input window; the local token--speaker mask uses 2-s windows and a
+  5-s boundary collar. All rows use exact Viterbi search. These are
+  uncalibrated results.}
+    \label{tab:long-form-ablation}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{clrrrr}
+    \toprule
+    & Configuration & Mean IoU ($\uparrow$) &
+      Boundary error (ms) ($\downarrow$) &
+      Kendall distance ($\downarrow$) & Failed cuts ($\downarrow$) \\
+    \midrule
+    1 & Training topology, all frames                         & 48.0 & 4634 & 10.4205 & 0.0 \\
+    2 & One-state topology, all frames                        & 48.0 & 4718 & 10.6910 & 0.0 \\
+    3 & Row 2 + 30\% frame retention                          & 51.8 &  460 &  0.2335 & 0.0 \\
+    4 & Row 3 + transcript-specific remapping                 & 51.8 &  460 &  0.2335 & 0.0 \\
+    5 & Row 4 + center-crop encoder chunking                  & 49.7 &  524 &  0.2897 & 0.0 \\
+    6 & Row 5 + local token--speaker mask                     & 49.8 &  267 &  0.2927 & 0.0 \\
+    7 & Row 6 + graph chunking                                & \textbf{54.0} & 182 & 0.2256 & 0.0 \\
+    8 & Row 7 + Whisper in place of Parakeet                  & 52.3 & \textbf{164} & \textbf{0.1788} & 0.0 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\begin{table}[t]
+  \centering
+  \caption{Effect of encoder chunking for token-only Parakeet alignment on
+  full NOTSOFAR development recordings. Both systems use graph chunking,
+  local masks, corpus-level blank pruning, and transcript remapping.}
+  \label{tab:alignment-chunking}
+  \small
+  \begin{tabular}{lrrrr}
+    \toprule
+    Encoder input & Mean IoU ($\uparrow$) &
+      Boundary error (ms) ($\downarrow$) & Kendall distance ($\downarrow$) &
+      WDER ($\downarrow$) \\
+    \midrule
+    Whole recording        & \textbf{54.3} & \textbf{173} & \textbf{0.2203} & 36.8 \\
+    20-s core / 30-s input & 53.9 & 181 & 0.2273 & \textbf{20.5} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[t]
+  \centering
+  \caption{Speaker-attribution and diarization results on NOTSOFAR. DER uses
+  a 250-ms collar and the supervision-boundary reference. ``Oracle perm.''
+  maps model speaker slots to reference speakers; ``oracle $K$'' supplies only
+  the number of speakers. Alignment times are calibrated unless marked
+  otherwise.}
+  \label{tab:speaker-main}
+  \small
+  \begin{tabular}{llcrrr}
+    \toprule
+    Set & Method & Speaker information & WDER ($\downarrow$) & DER ($\downarrow$) &
+      \shortstack{DER without\\calibration ($\downarrow$)} \\
+    \midrule
+    Dev & Frame posteriors, multilabel & Oracle perm. & -- & \textbf{21.5} & -- \\
+    Dev & ECAPA/AHC, posterior segments & Oracle $K$ & 24.3 & 25.8 & -- \\
+    Dev & ECAPA/AHC, estimated $K$      & None & 29.1 & 27.2 & -- \\
+    \midrule
+    Eval & Frame posteriors, multilabel & Oracle perm. & -- & \textbf{26.6} & -- \\
+    Eval & ECAPA/AHC, posterior segments & Oracle $K$ & 33.1 & 28.2 & 28.3 \\
+    Eval & ECAPA/AHC, token segments     & Oracle $K$ & 34.3 & 30.3 & 30.3 \\
+    Eval & ECAPA/AHC, posterior segments & Estimated $K$ & 42.0 & 37.6 & 37.7 \\
+    Eval & ECAPA/AHC, token segments     & Estimated $K$ & 43.6 & 39.8 & 39.8 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,5 @@
+method,nsf_dev_wder_pct,nsf_eval_wder_pct,ami_dev_wder_pct,ami_eval_wder_pct
+Segment,22.0,32.8,21.1,17.6
+Segment plus BPE trim,22.0,32.6,21.2,17.6
+Word plus BPE trim,24.5,35.2,23.9,20.4
+Local oracle majority speaker,36.6,48.3,34.0,30.4
