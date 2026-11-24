@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from mdctc_graph_compiler import MDCTCGraphCompiler
+from lhotse import load_manifest_lazy
 import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -32,6 +33,7 @@ from train import (
     get_params,
     compute_avg_speaker_density_per_example,
 )
+from model import split_joint_labels
 
 from icefall.checkpoint import (
     average_checkpoints,
@@ -49,6 +51,7 @@ from icefall.utils import (
 import time
 from tqdm import tqdm
 import json
+from text_normalization import normalize_english_transcript
 
 
 def get_parser():
@@ -126,6 +129,27 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--diarization-loss",
+        choices=("none", "bce", "powerset"),
+        default="none",
+        help=(
+            "Architecture selector retained for compatibility with the shared "
+            "training model constructor. ASR/SpAShl checkpoints use 'none'."
+        ),
+    )
+
+    parser.add_argument(
+        "--ignore-speaker",
+        type=str2bool,
+        default=False,
+        help=(
+            "Decode only the token factor and assign the hypothesis to slot 0. "
+            "Use this for token-only/segment-factor checkpoints whose speaker "
+            "head was not trained. Requires factorized token/speaker output."
+        ),
+    )
+
+    parser.add_argument(
         "--use-layer-norm",
         type=str2bool,
         default=False,
@@ -158,6 +182,36 @@ def get_parser():
         "--test-sets",
         type=str,
         default=None,
+    )
+    parser.add_argument(
+        "--test-cut-manifest",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
+        help="Add a named evaluation CutSet manifest; may be repeated.",
+    )
+    parser.add_argument(
+        "--downmix-multichannel",
+        type=str2bool,
+        default=False,
+        help="Average multichannel waveform cuts to mono before collation.",
+    )
+    parser.add_argument(
+        "--input-sampling-rate",
+        type=int,
+        default=0,
+        help="Resample waveform cuts to this rate before collation; 0 preserves input rate.",
+    )
+    parser.add_argument(
+        "--word-level-stm",
+        type=str2bool,
+        default=False,
+        help=(
+            "Write one timed STM segment per decoded/reference word. This is "
+            "recommended for tcpWER on long recordings because a collar cannot "
+            "meaningfully constrain a recording-long speaker segment. Reference "
+            "word times are read from the CutSet when available."
+        ),
     )
 
     parser.add_argument(
@@ -199,6 +253,43 @@ def get_nonzero_span_starts(batch, params):
     return result
 
 
+def mask_padded_predictions(preds, lengths):
+    """Replace predictions beyond each encoder sequence length with blank."""
+    if preds.ndim != 2 or lengths.ndim != 1 or preds.size(0) != lengths.numel():
+        raise ValueError(
+            f"Expected preds [B,T] and lengths [B], got {preds.shape}, "
+            f"{lengths.shape}"
+        )
+    valid = torch.arange(preds.size(1), device=preds.device).unsqueeze(0)
+    valid = valid < lengths.to(device=preds.device).unsqueeze(1)
+    return preds.masked_fill(~valid, 0)
+
+
+def factorized_greedy_argmax(token_scores, speaker_scores, blank_weight=0.0):
+    """Argmax the implicit blank-plus-(speaker x nonblank-token) output.
+
+    This is exactly equivalent to materializing the joint tensor used by the
+    factorized SPaSHL model, but its temporary storage is O(V + S) per frame
+    rather than O(V * S).  Joint labels follow the model convention
+    ``token + speaker * (vocab_size - 1)``.
+    """
+    if token_scores.ndim != 3 or speaker_scores.ndim != 3:
+        raise ValueError(
+            "Expected token and speaker scores with shape [batch, time, classes]"
+        )
+    if token_scores.shape[:2] != speaker_scores.shape[:2]:
+        raise ValueError(
+            f"Token/speaker frame shapes differ: {token_scores.shape} vs "
+            f"{speaker_scores.shape}"
+        )
+    blank = token_scores[..., 0] - blank_weight
+    token_score, token_index = token_scores[..., 1:].max(dim=-1)
+    speaker_score, speaker_index = speaker_scores.max(dim=-1)
+    best_joint = token_score + speaker_score
+    joint_index = token_index + 1 + speaker_index * (token_scores.size(-1) - 1)
+    return torch.where(blank >= best_joint, torch.zeros_like(joint_index), joint_index)
+
+
 def merge_bpe_with_times(sp, tokens, times, max_time):
     assert len(tokens) == len(times), "Tokens and times must match in length"
     words = []
@@ -232,10 +323,22 @@ def merge_bpe_with_times(sp, tokens, times, max_time):
     return words
 
 
-def hyp_to_stm(hyp, cut_idx):
+def hyp_to_stm(hyp, cut_idx, word_level=False, min_word_duration=0.02):
     utts = []
     for s in hyp:
         if len(hyp[s]) == 0:
+            continue
+        if word_level:
+            for word, start, duration in hyp[s]:
+                utts.append(
+                    {
+                        "session_id": cut_idx,
+                        "words": word,
+                        "speaker": str(s),
+                        "start_time": round(start, 2),
+                        "end_time": round(start + max(duration, min_word_duration), 2),
+                    }
+                )
             continue
         entry = {
             "session_id": cut_idx,
@@ -245,6 +348,42 @@ def hyp_to_stm(hyp, cut_idx):
             "end_time": round(hyp[s][-1][1] + hyp[s][-1][2], 2),
         }
         utts.append(entry)
+    return utts
+
+
+def cut_ref_to_word_stm(cut, cut_idx):
+    """Create a time-accurate tcpWER reference from Lhotse word alignments."""
+    utts = []
+    for supervision in cut.supervisions:
+        alignment = (supervision.alignment or {}).get("word", [])
+        if alignment:
+            for item in alignment:
+                word = normalize_english_transcript(item.symbol)
+                if not word:
+                    continue
+                utts.append(
+                    {
+                        "session_id": cut_idx,
+                        "words": word,
+                        "speaker": str(supervision.speaker),
+                        "start_time": round(item.start, 2),
+                        "end_time": round(item.start + item.duration, 2),
+                    }
+                )
+        else:
+            # Preserve compatibility with manifests that only have supervision
+            # boundaries, while keeping segments local in time.
+            words = normalize_english_transcript(supervision.text)
+            if words:
+                utts.append(
+                    {
+                        "session_id": cut_idx,
+                        "words": words,
+                        "speaker": str(supervision.speaker),
+                        "start_time": round(supervision.start, 2),
+                        "end_time": round(supervision.end, 2),
+                    }
+                )
     return utts
 
 
@@ -304,10 +443,18 @@ def decode_one_batch(
     feature_lens = batch["num_frames"].to(device)
     feature = feature.to(device)
     # at entry, feature is (N, T, C)
+    # Some real evaluation recordings (including SBCSAE) are stereo and are
+    # collated as (N, C, T). The training mixtures are mono, so average real
+    # channels before passing waveforms to a waveform encoder.
+    if feature.ndim == 3 and feature.size(-1) != 1:
+        feature = feature.mean(dim=1)
 
     supervisions = batch["supervisions"]
     feature = feature.to(device)
-    texts = [[t.strip() for t in b] for b in batch["texts"]]
+    texts = [
+        [normalize_english_transcript(t) for t in b]
+        for b in batch["texts"]
+    ]
     speakers = batch["speakers"]
     sort_orders = batch["sort_orders"] 
     seq_idx = batch['supervisions']['sequence_idx']
@@ -322,11 +469,20 @@ def decode_one_batch(
     
     with torch.set_grad_enabled(False):
         start = time.time()
-        ctc_output, x_lens = model(
-            feature,
-            feature_lens,
-            speaker_weight = params.speaker_weight,
-        )
+        if params.factorized_token_speaker_output:
+            token_output, speaker_output, x_lens = model(
+                feature,
+                feature_lens,
+                speaker_weight=params.speaker_weight,
+                return_factors=True,
+            )
+            ctc_output = None
+        else:
+            ctc_output, x_lens = model(
+                feature,
+                feature_lens,
+                speaker_weight=params.speaker_weight,
+            )
         end_nnet = time.time()
         subsampling_factor = 4 if params.downsample else 2
         use_double_scores = params.use_double_scores
@@ -352,21 +508,39 @@ def decode_one_batch(
     # Works with a BPE model
     densities = compute_avg_speaker_density_per_example(start_frames, num_frames_init)
 
-    ctc_output[..., 0] -= params.blank_weight
-    preds = ctc_output.argmax(-1)
+    if params.factorized_token_speaker_output:
+        if params.ignore_speaker:
+            token_output = token_output.clone()
+            token_output[..., 0] -= params.blank_weight
+            preds = token_output.argmax(-1)
+        else:
+            preds = factorized_greedy_argmax(
+                token_output, speaker_output, blank_weight=params.blank_weight
+            )
+    else:
+        ctc_output[..., 0] -= params.blank_weight
+        preds = ctc_output.argmax(-1)
+    # Fixed-context encoders such as Whisper return states for a fully padded
+    # 30-second window.  The graph loss observes x_lens, but greedy decoding
+    # must mask the padded states explicitly before timestamps and CTC collapse.
+    preds = mask_padded_predictions(preds, x_lens)
     times = get_nonzero_span_starts(preds, params)
     hyps = [
-        preds[i].unique_consecutive(dim=-1)[preds[i].unique_consecutive(dim=-1) != 0].squeeze(0)
+        preds[i].unique_consecutive(dim=-1)[
+            preds[i].unique_consecutive(dim=-1) != 0
+        ].reshape(-1)
         for i in range(preds.size(0))
     ]
-    spks = [
-        hyps[i] // (params.vocab_size - 1)
-        for i in range(preds.size(0))
-    ]
-    units = [
-        hyps[i].remainder((params.vocab_size - 1))
-        for i in range(preds.size(0))
-    ]
+    if params.ignore_speaker:
+        spks = [torch.zeros_like(hyp) for hyp in hyps]
+        units = hyps
+    else:
+        # Joint labels are token + speaker * (V - 1), token in [1, V - 1].
+        # The previous quotient/remainder split mapped token V-1 to blank in
+        # the next speaker block.
+        split = [split_joint_labels(hyp, params.vocab_size) for hyp in hyps]
+        spks = [item[0] for item in split]
+        units = [item[1] for item in split]
     
     cut_ids = [c.id for c in batch["supervisions"]["cut"]]
     tokens = {}
@@ -398,10 +572,20 @@ def decode_one_batch(
                 speaker_refs[s_i] = (
                     graph_compiler.sp.decode(text_i),
                     start_i * (1/16000),
-                    curr_dur * (1/16000),
+                    (curr_dur - start_i) * (1/16000),
                 )
-        stm_hyp = hyp_to_stm(speaker_hyps, cut_id)
-        stm_ref = ref_to_stm(speaker_refs, cut_id)
+        stm_hyp = hyp_to_stm(
+            speaker_hyps,
+            cut_id,
+            word_level=params.word_level_stm,
+            min_word_duration=params.frame_duration,
+        )
+        if params.word_level_stm:
+            stm_ref = cut_ref_to_word_stm(
+                batch["supervisions"]["cut"][i], cut_id
+            )
+        else:
+            stm_ref = ref_to_stm(speaker_refs, cut_id)
         yield stm_hyp, stm_ref
 
 
@@ -468,6 +652,11 @@ def main():
 
     params = get_params()
     params.update(vars(args))
+
+    if params.ignore_speaker and not params.factorized_token_speaker_output:
+        raise ValueError(
+            "--ignore-speaker requires --factorized-token-speaker-output=true"
+        )
 
     setup_logger(f"{params.exp_dir}/log-argmax-decode/log-decode")
     logging.info("Decoding started")
@@ -576,10 +765,19 @@ def main():
     args.return_cuts = True
     librispeech = LibriSpeechAsrDataModule(args)
 
+    custom_test_sets = {}
+    for item in params.test_cut_manifest:
+        if "=" not in item:
+            raise ValueError(f"Expected NAME=PATH for --test-cut-manifest, got {item!r}")
+        name, path = item.split("=", 1)
+        if not name or not path or name in custom_test_sets:
+            raise ValueError(f"Invalid or duplicate custom test set: {item!r}")
+        custom_test_sets[name] = path
+
     all_test_sets = [
         "synth", "libri3mix", "l2m_test_clean", "l2m_test_both",
         "lsm_2", "lsm_3", "ls_test_other", "ls_test_clean", "lcss", "ami_dev",
-    ]
+    ] + list(custom_test_sets)
     test_sets = params.test_sets.split() if params.test_sets is not None else all_test_sets
     unknown = set(test_sets) - set(all_test_sets)
     if unknown:
@@ -590,7 +788,9 @@ def main():
     single_speaker = None
     test_dl = []
     for test_set in test_sets:
-        if test_set == "synth":
+        if test_set in custom_test_sets:
+            cuts = load_manifest_lazy(custom_test_sets[test_set])
+        elif test_set == "synth":
             cuts = librispeech.synth_cuts()
         elif test_set == "libri3mix":
             cuts = librispeech.libri3mix_test_clean_cuts()

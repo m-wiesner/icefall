@@ -1,6 +1,7 @@
 from __future__ import annotations
 import argparse
 import json
+import warnings
 
 from typing import Any, Dict, Iterable, List, Tuple, Optional, Hashable
 from collections import defaultdict, deque
@@ -97,12 +98,13 @@ def apply_mapping_at_segment_level(
     unmapped_sentinel: Any = None,
 ) -> List[TokenRow]:
     """
-    Apply pred speaker -> ref speaker mapping, but conceptually at SEGMENT level.
-    (Since speaker is constant per segment, applying per row is equivalent.)
-    """
-    # sanity: segments should be single-speaker
-    _check_segment_speaker_consistency(pred_rows, "pred")
+    Apply a recording-level pred speaker -> ref speaker mapping to every row.
 
+    Historically predictions were constant within a segment, hence the function
+    name.  Applying the same global mapping row-wise also supports word-level
+    speaker attribution, where one input segment may contain multiple predicted
+    labels.
+    """
     out: List[TokenRow] = []
     for spk, seg, tok, start, dur in pred_rows:
         new_spk = mapping.get(spk, spk)
@@ -245,22 +247,91 @@ def kendall_distance_per_token(ref: List[Hashable], hyp: List[Hashable]) -> floa
     return kendall_distance_fenwick(ref, hyp) / max(1, n)
 
 
+def estimate_timing_bias(hyp, ref, relabel: bool, statistic: str = "median"):
+    """Estimate start and duration offsets on a separate calibration set."""
+    hyp_by_id = {item[0]: item for item in hyp}
+    start_errors = []
+    duration_errors = []
+    for utt_ref in ref:
+        utt_hyp = hyp_by_id.get(utt_ref[0])
+        if utt_hyp is None:
+            continue
+        h = sorted(utt_hyp[1], key=lambda x: (x[1], x[3]))
+        r = sorted(utt_ref[1], key=lambda x: (x[1], x[3]))
+        if len(h) != len(r):
+            raise ValueError(
+                f"Calibration length mismatch for {utt_ref[0]}: {len(h)} != {len(r)}"
+            )
+        if relabel:
+            h = apply_mapping_at_segment_level(h, hungarian_mapping_token_cost(h, r))
+        start_errors.extend(h_i[3] - r_i[3] for h_i, r_i in zip(h, r))
+        duration_errors.extend(h_i[4] - r_i[4] for h_i, r_i in zip(h, r))
+    if not start_errors:
+        raise ValueError("No matched calibration utterances")
+    estimator = np.median if statistic == "median" else np.mean
+    return (
+        float(estimator(start_errors)),
+        float(estimator(duration_errors)),
+        len(start_errors),
+    )
+
+
 
 def main(args):
     hyp = json.load(open(args.hyp))
     ref_ = json.load(open(args.ref))
     bias = args.bias / 1000
     duration_bias = args.duration_bias / 1000
-    hyp_utts = [h[0] for h in hyp]
+    if (args.calibration_hyp is None) != (args.calibration_ref is None):
+        raise ValueError("--calibration-hyp and --calibration-ref must be used together")
+    if args.calibration_offsets is not None and args.calibration_hyp is not None:
+        raise ValueError("Use saved offsets or calibration inputs, not both")
+    if args.calibrate and args.calibration_hyp is not None:
+        raise ValueError("Use either --calibrate or an external calibration set, not both")
+    if args.calibration_offsets is not None:
+        saved = json.load(open(args.calibration_offsets))
+        bias = float(saved["start_bias_seconds"])
+        duration_bias = float(saved["duration_bias_seconds"])
+        print(
+            f"Loaded calibration offsets from {args.calibration_offsets}: "
+            f"start={1000 * bias:.3f} ms duration={1000 * duration_bias:.3f} ms"
+        )
+    elif args.calibration_hyp is not None:
+        bias, duration_bias, calibration_tokens = estimate_timing_bias(
+            json.load(open(args.calibration_hyp)),
+            json.load(open(args.calibration_ref)),
+            relabel=args.relabel,
+            statistic=args.calibration_statistic,
+        )
+        print(
+            f"Calibration offsets ({args.calibration_statistic}) from "
+            f"{calibration_tokens} tokens: "
+            f"start={1000 * bias:.3f} ms duration={1000 * duration_bias:.3f} ms"
+        )
+        if args.calibration_output is not None:
+            with open(args.calibration_output, "w") as f:
+                json.dump({
+                    "start_bias_seconds": bias,
+                    "duration_bias_seconds": duration_bias,
+                    "statistic": args.calibration_statistic,
+                    "num_tokens": calibration_tokens,
+                    "calibration_hyp": args.calibration_hyp,
+                    "calibration_ref": args.calibration_ref,
+                }, f, indent=2)
+                f.write("\n")
+            print(f"Stored calibration offsets at {args.calibration_output}")
+    hyp_by_id = {h[0]: h for h in hyp}
     ref = []
+    matched_hyp = []
     skipped = 0
     total = 0
     for r in ref_:
-        if r[0] not in hyp_utts:
+        if r[0] not in hyp_by_id:
             #print(f"Removing {r[0]} from evaluation ...")
             skipped += 1
         else:
             ref.append(r)
+            matched_hyp.append(hyp_by_id[r[0]])
         total += 1 
     total_intersection = 0
     total_union = 0
@@ -273,14 +344,25 @@ def main(args):
     string_errors = []
     speaker_errors = 0
     total_tokens = 0
+    hyp = matched_hyp
     num_utts = len(ref)
     partition_errors = 0
-    calibrate_set = num_utts // 2
+    # Calibration estimates timing biases on the first half, then reports
+    # metrics on the second half.  A one-utterance diagnostic has no disjoint
+    # calibration/evaluation split, so score it without calibration.
+    do_calibrate = args.calibrate and num_utts >= 2
+    if args.calibrate and not do_calibrate:
+        warnings.warn(
+            "--calibrate requires at least 2 matched utterances; "
+            "scoring without bias calibration.",
+            stacklevel=1,
+        )
+    calibrate_set = num_utts // 2 if do_calibrate else None
     if args.reverse:
         hyp = hyp[::-1]
         ref = ref[::-1]
     for i, (utt_hyp, utt_ref) in tqdm(enumerate(zip(hyp, ref))):
-        if i == calibrate_set and args.calibrate:
+        if do_calibrate and i == calibrate_set:
             bias = sum(boundary_errors) / len(boundary_errors)
             duration_bias = sum(duration_errors) / len(duration_errors)
             total_errors = []
@@ -348,6 +430,15 @@ if __name__ == "__main__":
     parser.add_argument("--bias", "-b", type=float, default=0.0)
     parser.add_argument("--duration-bias", "-d", type=float, default=0.0)
     parser.add_argument("--calibrate", action="store_true")
+    parser.add_argument("--calibration-hyp", type=str)
+    parser.add_argument("--calibration-ref", type=str)
+    parser.add_argument("--calibration-offsets", type=str)
+    parser.add_argument("--calibration-output", type=str)
+    parser.add_argument(
+        "--calibration-statistic",
+        choices=("median", "mean"),
+        default="median",
+    )
     parser.add_argument("--reverse", action="store_true")
     parser.add_argument("--relabel", action="store_true")
     parser.add_argument("--help", action="help")

@@ -30,7 +30,9 @@ Usage:
 
 import argparse
 import copy
+import itertools
 import logging
+import math
 from contextlib import nullcontext
 from pathlib import Path
 from shutil import copyfile
@@ -42,12 +44,18 @@ import torch
 import k2
 import torch.multiprocessing as mp
 import torch.nn as nn
+import torch.nn.functional as F
 from asr_datamodule import LibriSpeechAsrDataModule
 from lhotse.cut import Cut
 from lhotse.dataset.sampling.base import CutSampler
 from lhotse.utils import fix_random_seed
 from lhotse import CutSet
-from model import MDCTCModel
+from model import (
+    FrozenTokenTeacherSpeakerModel,
+    MDCTCModel,
+    SpeakerDiarizationModel,
+    split_joint_labels,
+)
 from torch.optim import Adam
 from torch import Tensor
 from torch.cuda.amp import GradScaler
@@ -83,7 +91,7 @@ import numpy as np
 import torchaudio
 
 
-LRSchedulerType = torch.optim.lr_scheduler._LRScheduler
+LRSchedulerType = Any
 
 
 def set_batch_count(model: Union[nn.Module, DDP], batch_count: float) -> None:
@@ -203,7 +211,21 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--base-lr", type=float, default=0.0001, help="The base learning rate."
+        "--base-lr", type=float, default=0.0001,
+        help="Peak learning rate for the unfrozen OneCycle schedule."
+    )
+
+    parser.add_argument(
+        "--optimizer-name",
+        choices=("adam", "scaled_adam"),
+        default="adam",
+        help="Optimizer. ScaledAdam is the standard choice for Zipformer.",
+    )
+    parser.add_argument(
+        "--lr-scheduler-name",
+        choices=("one_cycle", "eden2"),
+        default="one_cycle",
+        help="Learning-rate scheduler; Eden2 is update-based and has no epoch term.",
     )
 
     parser.add_argument(
@@ -220,6 +242,18 @@ def get_parser():
         default=3.5,
         help="""Number of epochs that affects how rapidly the learning rate decreases.
         """,
+    )
+    parser.add_argument(
+        "--lr-warmup-updates",
+        type=float,
+        default=500.0,
+        help="Number of optimizer updates over which Eden2 warms up.",
+    )
+    parser.add_argument(
+        "--lr-warmup-start",
+        type=float,
+        default=0.5,
+        help="Initial fraction of --base-lr during Eden2 warmup.",
     )
 
     parser.add_argument(
@@ -247,7 +281,7 @@ def get_parser():
         "--save-every-n",
         type=int,
         default=2000,
-        help="""Save checkpoint after processing this number of batches"
+        help="""Save checkpoint after this number of optimizer updates"
         periodically. We save checkpoint to exp-dir/ whenever
         params.batch_idx_train % save_every_n == 0. The checkpoint filename
         has the form: f'exp-dir/checkpoint-{params.batch_idx_train}.pt'
@@ -271,8 +305,8 @@ def get_parser():
         "--average-period",
         type=int,
         default=200,
-        help="""Update the averaged model, namely `model_avg`, after processing
-        this number of batches. `model_avg` is a separate version of model,
+        help="""Update the averaged model after this number of optimizer
+        updates. `model_avg` is a separate version of model,
         in which each floating-point parameter is the average of all the
         parameters from the start of training. Each time we take the average,
         we do: `model_avg = model * (average_period / batch_idx_train) +
@@ -322,7 +356,14 @@ def get_parser():
     )
     
     parser.add_argument("--freeze-iters", type=int, default=500,
-        help="The number of iterations the base wav2vec2 model is frozen."
+        help="Number of optimizer updates for which the encoder is frozen."
+    )
+
+    parser.add_argument(
+        "--valid-interval",
+        type=int,
+        default=3000,
+        help="Run validation after this many optimizer updates.",
     )
 
     parser.add_argument(
@@ -362,8 +403,8 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--total-steps", type=int, default=100000, help="The total number of "
-        "steps for the lr_scheduler",
+        "--total-steps", type=int, default=100000,
+        help="Total number of optimizer updates, including frozen updates.",
     )    
     
     parser.add_argument(
@@ -380,6 +421,19 @@ def get_parser():
         "--max-overlap",
         type=int,
         default=3,
+    )
+
+    parser.add_argument(
+        "--diarization-loss",
+        choices=("none", "bce", "powerset"),
+        default="none",
+        help=(
+            "Train a diarization-only WavLM with FIFO frame targets. 'bce' "
+            "uses independent binary speaker activities; 'powerset' uses "
+            "cross entropy over all speaker subsets containing at most "
+            "--max-overlap active speakers. Both modes omit the ASR/token "
+            "model, transcript graphs, and CTC intersection entirely."
+        ),
     )
 
     parser.add_argument(
@@ -407,6 +461,88 @@ def get_parser():
         help=(
             "Pass token and speaker scores separately to the custom CUDA k2 "
             "intersection instead of materializing token-by-speaker logits."
+        ),
+    )
+    parser.add_argument(
+        "--determinize-token-only-graph",
+        type=str2bool,
+        default=False,
+        help=(
+            "Determinize the token-projected partial-order transcript FSA "
+            "before CTC composition. This removes duplicate token strings "
+            "from token-only training graphs; it is ignored when the "
+            "speaker branch is enabled."
+        ),
+    )
+    parser.add_argument(
+        "--token-only-segment-factor",
+        type=str2bool,
+        default=False,
+        help=(
+            "Use unique supervision-segment labels in a token-only graph and "
+            "score them with a fixed normalized temporal prior. The prior is "
+            "flat inside each collar-expanded supervision interval, decays "
+            "exponentially outside it, and has a configurable nonzero floor. "
+            "This uses the factorized CUDA loss without adding a learned "
+            "segment head."
+        ),
+    )
+    parser.add_argument(
+        "--segment-factor-collar",
+        type=int,
+        default=None,
+        help=(
+            "Flat supervision-interval expansion in waveform samples for the "
+            "fixed segment factor. Defaults to the effective partial-order "
+            "collar."
+        ),
+    )
+    parser.add_argument(
+        "--segment-factor-decay-scale",
+        type=float,
+        default=16000.0,
+        help=(
+            "Exponential-decay scale in waveform samples outside the segment-"
+            "factor collar. Must be positive. A value of 16000 corresponds to "
+            "one second at 16 kHz."
+        ),
+    )
+    parser.add_argument(
+        "--segment-factor-floor-prob",
+        type=float,
+        default=1.0e-4,
+        help=(
+            "Total probability mass mixed uniformly over all real segments at "
+            "every encoder frame. This keeps every graph path finite even when "
+            "the coarse supervision timing is inaccurate."
+        ),
+    )
+    parser.add_argument(
+        "--frozen-token-teacher-checkpoint",
+        type=str,
+        default=None,
+        help=(
+            "Enable teacher/student SpAShl training. The specified token-only "
+            "checkpoint is loaded into a permanently frozen WavLM teacher; a "
+            "separate WavLM encoder and speaker head receive all gradients."
+        ),
+    )
+    parser.add_argument(
+        "--teacher-local-mask-window-duration",
+        type=float,
+        default=2.0,
+        help=(
+            "Width in seconds of each non-overlapping local transcript-mask "
+            "window used for frozen-teacher token scores."
+        ),
+    )
+    parser.add_argument(
+        "--teacher-local-mask-boundary-collar",
+        type=float,
+        default=5.0,
+        help=(
+            "Seconds of coarse-timing context on both sides of each local "
+            "token-mask window."
         ),
     )
     parser.add_argument(
@@ -624,11 +760,109 @@ def get_encoder_model(params: AttributeDict) -> nn.Module:
     return model, odim
 
 
+def powerset_class_bitmasks(num_speakers: int, max_overlap: int) -> Tuple[int, ...]:
+    """Return deterministic bitmasks for the admissible powerset classes."""
+    if num_speakers < 1:
+        raise ValueError(f"num_speakers must be positive: {num_speakers}")
+    if not 0 <= max_overlap <= num_speakers:
+        raise ValueError(
+            f"max_overlap must be in [0, {num_speakers}]: {max_overlap}"
+        )
+    masks = []
+    for cardinality in range(max_overlap + 1):
+        for active in itertools.combinations(range(num_speakers), cardinality):
+            mask = 0
+            for speaker in active:
+                mask |= 1 << speaker
+            masks.append(mask)
+    return tuple(masks)
+
+
 def get_mdctc_model(
     params: AttributeDict,
 ) -> nn.Module:
     encoder, encoder_dim = get_encoder_model(params)
 
+    if params.diarization_loss != "none":
+        if params.diarization_loss == "bce":
+            output_dim = params.max_num_spks
+        else:
+            output_dim = len(
+                powerset_class_bitmasks(params.max_num_spks, params.max_overlap)
+            )
+        logging.info(
+            "Constructing diarization-only WavLM: loss=%s output_dim=%d",
+            params.diarization_loss,
+            output_dim,
+        )
+        return SpeakerDiarizationModel(
+            encoder=encoder,
+            encoder_dim=encoder_dim,
+            output_dim=output_dim,
+            layer_norm=params.use_layer_norm,
+            downsample=params.downsample,
+        )
+
+    if not getattr(params, "frozen_token_teacher_checkpoint", None):
+        return MDCTCModel(
+            encoder=encoder,
+            encoder_dim=encoder_dim,
+            vocab_size1=params.vocab_size,
+            vocab_size2=params.max_num_spks,
+            factorized_token_speaker_output=params.factorized_token_speaker_output,
+            layer_norm=params.use_layer_norm,
+            downsample=params.downsample,
+        )
+
+    teacher_checkpoint = Path(params.frozen_token_teacher_checkpoint)
+    if not teacher_checkpoint.is_file():
+        raise FileNotFoundError(
+            f"Frozen token-teacher checkpoint not found: {teacher_checkpoint}"
+        )
+
+    # ``encoder`` above becomes the independently pretrained speaker student.
+    # Build the legacy token-only architecture separately so its checkpoint is
+    # interpreted exactly as it was during the original run.
+    teacher_encoder, teacher_dim = get_encoder_model(params)
+    if teacher_dim != encoder_dim:
+        raise RuntimeError(
+            f"Teacher/student encoder dimensions differ: {teacher_dim} != {encoder_dim}"
+        )
+    token_teacher = MDCTCModel(
+        encoder=teacher_encoder,
+        encoder_dim=teacher_dim,
+        vocab_size1=params.vocab_size,
+        vocab_size2=params.max_num_spks,
+        factorized_token_speaker_output=False,
+        layer_norm=params.use_layer_norm,
+        downsample=params.downsample,
+    )
+    logging.info("Loading immutable token teacher from %s", teacher_checkpoint)
+    load_checkpoint(teacher_checkpoint, model=token_teacher)
+
+    model = FrozenTokenTeacherSpeakerModel(
+        token_teacher=token_teacher,
+        speaker_encoder=encoder,
+        encoder_dim=encoder_dim,
+        vocab_size=params.vocab_size,
+        num_speakers=params.max_num_spks,
+        layer_norm=params.use_layer_norm,
+        downsample=params.downsample,
+    )
+    logging.info(
+        "Teacher/student parameter counts: frozen token teacher=%d; "
+        "trainable speaker model=%d",
+        sum(parameter.numel() for parameter in token_teacher.parameters()),
+        sum(parameter.numel() for parameter in model.parameters()),
+    )
+    return model
+
+
+def get_legacy_mdctc_model(
+    params: AttributeDict,
+) -> nn.Module:
+    """Compatibility constructor retained for external recipe imports."""
+    encoder, encoder_dim = get_encoder_model(params)
     model = MDCTCModel(
         encoder=encoder,
         encoder_dim=encoder_dim,
@@ -638,7 +872,6 @@ def get_mdctc_model(
         layer_norm=params.use_layer_norm,
         downsample=params.downsample,
     )
-    
     return model
 
 
@@ -790,6 +1023,387 @@ def compute_avg_speaker_density_per_example(start_frames_list, num_frames_list):
     return avg_densities
 
 
+def make_uniform_segment_log_probs(
+    start_samples_list,
+    num_samples_list,
+    input_sample_lengths: torch.Tensor,
+    output_lengths: torch.Tensor,
+    max_output_frames: int,
+    collar: int,
+    device: torch.device,
+    decay_scale: float = 16000.0,
+    floor_probability: float = 1.0e-4,
+) -> torch.Tensor:
+    """Create a normalized, nonlearned soft per-frame segment distribution.
+
+    A segment receives a constant unnormalized score inside its supervision
+    interval expanded by ``collar`` waveform samples.  Outside that interval,
+    its score decays exponentially with distance using ``decay_scale``.  After
+    normalization, ``floor_probability`` total mass is mixed uniformly over
+    all real segments.  Consequently every segment has finite log probability
+    at every valid encoder frame, so inaccurate coarse timing cannot eliminate
+    every accepting graph path.
+
+    Padded segment columns remain ``-inf`` because they are not labels in the
+    corresponding graph. Padded encoder frames are normalized on segment zero;
+    they are ignored by the dense intersection.
+    """
+    if collar < 0:
+        raise ValueError(f"segment-factor collar must be non-negative: {collar}")
+    if decay_scale <= 0:
+        raise ValueError(
+            "segment-factor decay scale must be positive: "
+            f"{decay_scale}"
+        )
+    if not 0.0 <= floor_probability < 1.0:
+        raise ValueError(
+            "segment-factor floor probability must be in [0, 1): "
+            f"{floor_probability}"
+        )
+    if len(start_samples_list) != len(num_samples_list):
+        raise ValueError("segment start/duration batch dimensions differ")
+    batch_size = len(start_samples_list)
+    if batch_size != int(output_lengths.numel()):
+        raise ValueError(
+            f"Expected {batch_size} output lengths, got {output_lengths.numel()}"
+        )
+    max_segments = max((len(starts) for starts in start_samples_list), default=0)
+    if max_segments == 0:
+        raise ValueError("Every cut must contain at least one supervision segment")
+
+    ans = torch.full(
+        (batch_size, max_output_frames, max_segments),
+        float("-inf"),
+        dtype=torch.float32,
+        device=device,
+    )
+    for i, (starts, durations) in enumerate(
+        zip(start_samples_list, num_samples_list)
+    ):
+        if len(starts) != len(durations) or not starts:
+            raise ValueError(
+                f"Cut {i} has {len(starts)} starts and {len(durations)} durations"
+            )
+        output_length = int(output_lengths[i].item())
+        input_length = int(input_sample_lengths[i].item())
+        if output_length <= 0 or input_length <= 0:
+            raise ValueError(
+                f"Cut {i} has input_length={input_length}, "
+                f"output_length={output_length}"
+            )
+
+        frame_centers = (
+            torch.arange(output_length, device=device, dtype=torch.float32) + 0.5
+        ) * (input_length / output_length)
+        starts_tensor = torch.tensor(starts, device=device, dtype=torch.float32)
+        ends_tensor = starts_tensor + torch.tensor(
+            durations, device=device, dtype=torch.float32
+        )
+        left_edges = starts_tensor - collar
+        right_edges = ends_tensor + collar
+        distance = torch.maximum(
+            left_edges[None, :] - frame_centers[:, None],
+            frame_centers[:, None] - right_edges[None, :],
+        ).clamp_min_(0)
+        local_log_probs = torch.log_softmax(-distance / decay_scale, dim=1)
+
+        if floor_probability > 0.0:
+            num_segments = len(starts)
+            log_local_weight = math.log1p(-floor_probability)
+            log_uniform_floor = math.log(floor_probability / num_segments)
+            local_log_probs = torch.logaddexp(
+                local_log_probs + log_local_weight,
+                torch.full_like(local_log_probs, log_uniform_floor),
+            )
+
+        ans[i, :output_length, :len(starts)] = local_log_probs
+
+        # Padded encoder frames are not selected by DenseFsaVec.  Give them a
+        # benign normalized value so diagnostics never encounter an all--inf
+        # row accidentally.
+        if output_length < max_output_frames:
+            ans[i, output_length:, 0] = 0.0
+    return ans
+
+
+def apply_teacher_local_token_mask(
+    token_log_probs: torch.Tensor,
+    output_lengths: torch.Tensor,
+    input_sample_lengths: torch.Tensor,
+    texts,
+    supervision_start_samples,
+    supervision_num_samples,
+    sp,
+    window_duration: float,
+    boundary_collar: float,
+    sample_rate: int = 16000,
+):
+    """Apply the long-form local transcript mask to teacher token scores.
+
+    Windows are non-overlapping on the original waveform time axis.  For a
+    window ``[a,b)``, a supervision contributes its BPE types when its coarse
+    interval intersects ``[a-c,b+c]``.  Blank is always legal.  The teacher's
+    original log-softmax denominator is deliberately preserved: masking sets
+    inadmissible types to ``-inf`` but does not renormalize the remaining
+    scores, matching the long-form alignment implementation.
+    """
+    if token_log_probs.ndim != 3:
+        raise ValueError(
+            f"Expected teacher scores [N,T,V], got {token_log_probs.shape}"
+        )
+    if window_duration <= 0:
+        raise ValueError(
+            f"Teacher local-mask window must be positive: {window_duration}"
+        )
+    if boundary_collar < 0:
+        raise ValueError(
+            f"Teacher local-mask collar must be non-negative: {boundary_collar}"
+        )
+    batch_size, max_frames, vocab_size = token_log_probs.shape
+    if not (
+        batch_size
+        == len(texts)
+        == len(supervision_start_samples)
+        == len(supervision_num_samples)
+        == int(output_lengths.numel())
+        == int(input_sample_lengths.numel())
+    ):
+        raise ValueError("Teacher local-mask batch dimensions do not agree")
+
+    window_samples = window_duration * sample_rate
+    collar_samples = boundary_collar * sample_rate
+    allowed = torch.zeros(
+        (batch_size, max_frames, vocab_size),
+        dtype=torch.bool,
+        device=token_log_probs.device,
+    )
+    allowed[..., 0] = True
+    total_windows = 0
+    blank_only_windows = 0
+    allowed_nonblank = 0
+    possible_nonblank = 0
+
+    for cut_index in range(batch_size):
+        length = int(output_lengths[cut_index].item())
+        input_length = int(input_sample_lengths[cut_index].item())
+        if length <= 0 or input_length <= 0:
+            raise ValueError(
+                f"Cut {cut_index} has input_length={input_length}, "
+                f"output_length={length}"
+            )
+        starts = supervision_start_samples[cut_index]
+        durations = supervision_num_samples[cut_index]
+        cut_texts = texts[cut_index]
+        if not (len(starts) == len(durations) == len(cut_texts)):
+            raise ValueError(
+                f"Cut {cut_index} has {len(cut_texts)} texts, {len(starts)} "
+                f"starts, and {len(durations)} durations"
+            )
+
+        supervision_tokens = []
+        for text, start, duration in zip(cut_texts, starts, durations):
+            token_ids = set(sp.encode(text))
+            if any(token < 1 or token >= vocab_size for token in token_ids):
+                raise ValueError(
+                    f"Cut {cut_index} contains a token outside [1,{vocab_size}): "
+                    f"{sorted(token_ids)}"
+                )
+            supervision_tokens.append(
+                (float(start), float(start + duration), token_ids)
+            )
+
+        frame_centers = (
+            torch.arange(
+                length, device=token_log_probs.device, dtype=torch.float64
+            )
+            + 0.5
+        ) * (input_length / length)
+        window_ids = torch.floor(frame_centers / window_samples).to(torch.long)
+        for window_id in torch.unique(window_ids).tolist():
+            frame_mask = window_ids == window_id
+            window_start = window_id * window_samples
+            window_end = window_start + window_samples
+            active_tokens = set()
+            for sup_start, sup_end, token_ids in supervision_tokens:
+                if (
+                    sup_start < window_end + collar_samples
+                    and sup_end > window_start - collar_samples
+                ):
+                    active_tokens.update(token_ids)
+            if active_tokens:
+                frame_index = torch.nonzero(frame_mask, as_tuple=False).squeeze(1)
+                token_index = torch.tensor(
+                    sorted(active_tokens),
+                    device=token_log_probs.device,
+                    dtype=torch.long,
+                )
+                allowed[
+                    cut_index, frame_index[:, None], token_index[None, :]
+                ] = True
+            else:
+                blank_only_windows += 1
+            total_windows += 1
+
+        allowed_nonblank += int(allowed[cut_index, :length, 1:].sum().item())
+        possible_nonblank += length * max(vocab_size - 1, 0)
+
+    masked = token_log_probs.masked_fill(~allowed, -torch.inf)
+    stats = {
+        "windows": total_windows,
+        "blank_only_windows": blank_only_windows,
+        "allowed_nonblank": allowed_nonblank,
+        "possible_nonblank": possible_nonblank,
+    }
+    return masked, stats
+
+
+def make_fifo_speaker_targets(
+    speakers,
+    supervision_start_samples,
+    supervision_num_samples,
+    input_sample_lengths: torch.Tensor,
+    output_lengths: torch.Tensor,
+    max_output_frames: int,
+    max_num_speakers: int,
+    device: torch.device,
+) -> Tuple[torch.Tensor, torch.Tensor, Tuple[int, ...]]:
+    """Rasterize supervision intervals into FIFO speaker activities.
+
+    The first distinct speaker to begin in a cut is slot 0, the next unseen
+    speaker is slot 1, and so on.  ``speakers`` and the interval lists are
+    expected to be in the dataset's ``start_time`` order, exactly matching the
+    FIFO convention used by the teacher-token SpAShl graph.
+    """
+    batch_size = len(speakers)
+    if not (
+        batch_size
+        == len(supervision_start_samples)
+        == len(supervision_num_samples)
+        == int(input_sample_lengths.numel())
+        == int(output_lengths.numel())
+    ):
+        raise ValueError("FIFO target batch dimensions differ")
+
+    targets = torch.zeros(
+        batch_size,
+        max_output_frames,
+        max_num_speakers,
+        dtype=torch.float32,
+        device=device,
+    )
+    valid_frames = (
+        torch.arange(max_output_frames, device=device)[None, :]
+        < output_lengths.to(device=device, dtype=torch.long)[:, None]
+    )
+    num_speakers_per_cut = []
+
+    for cut_index, (cut_speakers, starts, durations) in enumerate(
+        zip(speakers, supervision_start_samples, supervision_num_samples)
+    ):
+        if not (len(cut_speakers) == len(starts) == len(durations)):
+            raise ValueError(
+                f"Cut {cut_index} has mismatched speakers/starts/durations: "
+                f"{len(cut_speakers)}/{len(starts)}/{len(durations)}"
+            )
+        fifo_slots = {}
+        segment_slots = []
+        for speaker in cut_speakers:
+            if speaker not in fifo_slots:
+                fifo_slots[speaker] = len(fifo_slots)
+            segment_slots.append(fifo_slots[speaker])
+        if len(fifo_slots) > max_num_speakers:
+            raise ValueError(
+                f"Cut {cut_index} has {len(fifo_slots)} speakers, exceeding "
+                f"--max-num-spks={max_num_speakers}"
+            )
+        num_speakers_per_cut.append(len(fifo_slots))
+
+        output_length = int(output_lengths[cut_index].item())
+        input_length = int(input_sample_lengths[cut_index].item())
+        if output_length <= 0 or input_length <= 0:
+            raise ValueError(
+                f"Cut {cut_index} has input_length={input_length}, "
+                f"output_length={output_length}"
+            )
+        frame_centers = (
+            torch.arange(output_length, device=device, dtype=torch.float32) + 0.5
+        ) * (input_length / output_length)
+        for start, duration, slot in zip(starts, durations, segment_slots):
+            end = start + duration
+            active = (frame_centers >= start) & (frame_centers < end)
+            targets[cut_index, :output_length, slot] = torch.maximum(
+                targets[cut_index, :output_length, slot], active.to(torch.float32)
+            )
+
+    return targets, valid_frames, tuple(num_speakers_per_cut)
+
+
+def compute_diarization_objective(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    valid_frames: torch.Tensor,
+    loss_type: str,
+    max_overlap: int,
+) -> Tuple[torch.Tensor, Dict[str, int]]:
+    """Compute masked FIFO BCE or powerset cross entropy."""
+    if logits.shape[:2] != targets.shape[:2] or valid_frames.shape != logits.shape[:2]:
+        raise ValueError(
+            f"Diarization tensor shape mismatch: logits={tuple(logits.shape)}, "
+            f"targets={tuple(targets.shape)}, valid={tuple(valid_frames.shape)}"
+        )
+    num_valid_frames = int(valid_frames.sum().item())
+    if num_valid_frames == 0:
+        raise ValueError("Diarization batch contains no valid output frames")
+
+    if loss_type == "bce":
+        if logits.size(-1) != targets.size(-1):
+            raise ValueError(
+                f"BCE output dimension {logits.size(-1)} != "
+                f"speaker slots {targets.size(-1)}"
+            )
+        element_loss = F.binary_cross_entropy_with_logits(
+            logits, targets, reduction="none"
+        )
+        speaker_mask = valid_frames.unsqueeze(-1).expand_as(element_loss)
+        loss = element_loss.masked_select(speaker_mask).mean()
+        return loss, {"powerset_classes": 0, "overlap_violations": 0}
+
+    if loss_type != "powerset":
+        raise ValueError(f"Unsupported diarization loss: {loss_type}")
+
+    num_speakers = targets.size(-1)
+    class_masks = powerset_class_bitmasks(num_speakers, max_overlap)
+    if logits.size(-1) != len(class_masks):
+        raise ValueError(
+            f"Powerset output dimension {logits.size(-1)} != {len(class_masks)}"
+        )
+    bit_weights = 1 << torch.arange(num_speakers, device=targets.device)
+    target_masks = (targets.to(torch.long) * bit_weights).sum(dim=-1)
+    lookup = torch.full(
+        (1 << num_speakers,), -1, dtype=torch.long, device=targets.device
+    )
+    lookup[torch.tensor(class_masks, device=targets.device)] = torch.arange(
+        len(class_masks), device=targets.device
+    )
+    target_classes = lookup[target_masks]
+    violations = valid_frames & target_classes.lt(0)
+    num_violations = int(violations.sum().item())
+    if num_violations:
+        observed_overlap = int(
+            targets[violations].sum(dim=-1).max().item()
+        )
+        raise ValueError(
+            f"Found {num_violations} valid frames with more than "
+            f"--max-overlap={max_overlap} active speakers "
+            f"(observed maximum {observed_overlap})"
+        )
+    loss = F.cross_entropy(logits[valid_frames], target_classes[valid_frames])
+    return loss, {
+        "powerset_classes": len(class_masks),
+        "overlap_violations": num_violations,
+    }
+
+
 def _configure_cuda_memory_reporter(params, model, device):
     """Return a phase profiler whose peak is reset after every checkpoint."""
     bare_model = model.module if isinstance(model, DDP) else model
@@ -868,18 +1482,95 @@ def compute_loss(
         [batch['supervisions']['num_samples'][seq_idx == i][j].item() for j in sort_orders[i]]
         for i in range(seq_idx.max()+1)
     ]
+
+    if params.diarization_loss != "none":
+        with torch.set_grad_enabled(is_training):
+            start = time.time()
+            logits, x_lens = model(feature, feature_lens)
+            end_nnet = time.time()
+            targets, valid_frames, num_speakers_per_cut = make_fifo_speaker_targets(
+                speakers=speakers,
+                supervision_start_samples=start_frames,
+                supervision_num_samples=num_frames_init,
+                input_sample_lengths=feature_lens,
+                output_lengths=x_lens,
+                max_output_frames=logits.size(1),
+                max_num_speakers=params.max_num_spks,
+                device=device,
+            )
+            loss, objective_stats = compute_diarization_objective(
+                logits=logits,
+                targets=targets,
+                valid_frames=valid_frames,
+                loss_type=params.diarization_loss,
+                max_overlap=params.max_overlap,
+            )
+            end_loss = time.time()
+
+        if memory_reporter is not None:
+            memory_reporter("diarization/loss")
+        valid_count = int(valid_frames.sum().item())
+        weighted_loss = float(loss.detach().cpu().item()) * valid_count
+        info = MetricsTracker()
+        info["frames"] = valid_count
+        info["loss"] = weighted_loss
+        info["diarization_loss"] = weighted_loss
+        info["speaker_activity"] = float(
+            targets.masked_select(
+                valid_frames.unsqueeze(-1).expand_as(targets)
+            ).sum().item()
+        )
+        info["num_speakers"] = (
+            sum(num_speakers_per_cut) / len(num_speakers_per_cut) * valid_count
+        )
+        info["pct_nnet"] = (
+            (end_nnet - start) / max(end_loss - start, 1.0e-12) * valid_count
+        )
+        info["powerset_classes"] = objective_stats["powerset_classes"] * valid_count
+        info["utterances"] = feature.size(0)
+        info["utt_duration"] = feature_lens.sum().item()
+        info["utt_pad_proportion"] = (
+            ((feature.size(1) - feature_lens) / feature.size(1)).sum().item()
+        )
+        assert loss.requires_grad == is_training, (
+            f"{loss.requires_grad} != {is_training}"
+        )
+        return loss, info
+
     beam_factor = 1
+    teacher_mask_stats = None
     with torch.set_grad_enabled(is_training):
         start = time.time()
-        use_factorized_ctc = params.factorized_ctc_loss and params.speaker_branch
+        use_speaker_factor = params.factorized_ctc_loss and params.speaker_branch
+        use_segment_factor = params.token_only_segment_factor
+        use_factorized_ctc = use_speaker_factor or use_segment_factor
         model_output = model(
             feature, feature_lens,
             speaker_weight=params.speaker_weight,
+            # Both the speaker-factor and segment-factor losses consume the
+            # token branch before speaker x token expansion.  In segment mode
+            # the model's speaker factor is deliberately discarded and
+            # replaced below by the fixed temporal segment prior.
             return_factors=use_factorized_ctc,
         )
         if use_factorized_ctc:
-            token_output, speaker_output, x_lens = model_output
+            token_output, model_factor_output, x_lens = model_output
             ctc_output = None
+            speaker_output = (
+                model_factor_output if use_speaker_factor else None
+            )
+            if use_speaker_factor and params.frozen_token_teacher_checkpoint:
+                token_output, teacher_mask_stats = apply_teacher_local_token_mask(
+                    token_log_probs=token_output,
+                    output_lengths=x_lens,
+                    input_sample_lengths=feature_lens,
+                    texts=texts,
+                    supervision_start_samples=start_frames,
+                    supervision_num_samples=num_frames_init,
+                    sp=graph_compiler.sp,
+                    window_duration=params.teacher_local_mask_window_duration,
+                    boundary_collar=params.teacher_local_mask_boundary_collar,
+                )
         else:
             ctc_output, x_lens = model_output
         end_nnet = time.time()
@@ -896,7 +1587,7 @@ def compute_loss(
             params.batch_idx_train % params.decode_hyp_interval == 0
             and getattr(params, "microbatch_idx_train", 0) % params.accum_grad == 0
         ):
-            if use_factorized_ctc:
+            if use_speaker_factor:
                 token_score, token_index = token_output[..., 1:].max(-1)
                 speaker_score, speaker_index = speaker_output.max(-1)
                 best_joint = token_score + speaker_score
@@ -907,6 +1598,10 @@ def compute_loss(
                     token_output[..., 0] >= best_joint,
                     torch.zeros_like(joint_index), joint_index,
                 )
+            elif use_segment_factor:
+                # Segment-factor training has no predicted speaker/factor
+                # branch.  These are genuine SentencePiece token IDs.
+                preds = token_output.argmax(-1)
             else:
                 preds = ctc_output.argmax(-1)
             hyps = []
@@ -914,12 +1609,23 @@ def compute_loss(
             for i in range(preds.size(0)):
                 hyps_ = {}
                 preds_no_repeats = preds[i].unique_consecutive()
-                preds_no_repeats_or_blanks = preds_no_repeats[preds_no_repeats != 0].squeeze()
-                spks = preds_no_repeats_or_blanks // (params.vocab_size - 1)
-                units = preds_no_repeats_or_blanks.remainder((params.vocab_size - 1))
-                for s in range(params.max_num_spks):
-                    s_units = units[spks == s].tolist()
-                    hyps_[s] = s_units
+                preds_no_repeats_or_blanks = preds_no_repeats[
+                    preds_no_repeats != 0
+                ].reshape(-1)
+                if not use_segment_factor:
+                    # Joint labels are token + speaker * (V - 1), with token
+                    # in [1, V - 1].  Subtracting one before division is
+                    # essential for token V-1 at every block boundary.
+                    spks, units = split_joint_labels(
+                        preds_no_repeats_or_blanks, params.vocab_size
+                    )
+                    for s in range(params.max_num_spks):
+                        s_units = units[spks == s].tolist()
+                        hyps_[s] = s_units
+                else:
+                    spks = torch.zeros_like(preds_no_repeats_or_blanks)
+                    units = preds_no_repeats_or_blanks
+                    hyps_[0] = units.tolist()
                 hyps.append(hyps_)
                 spk_hyps.append(spks.view(-1).tolist())
 
@@ -973,26 +1679,92 @@ def compute_loss(
         densities = compute_avg_speaker_density_per_example(start_frames, num_frames_init)
         
         collar = params.collar
-        if params.speaker_branch:
-            decoding_graphs = graph_compiler.compile(
-                texts, start_frames, num_frames_init, speakers,
-                collar=collar,
-                edge_collar=params.edge_collar,
-                interval_model=params.interval_model,
-                max_overlaps=params.total_max_overlaps,
-                original_topo=params.original_topo,
-                allow_self_overlap=params.allow_self_overlap,
+        # Besides the graph compiler's historical ambiguity-count guard, keep
+        # every individual graph within the exact signed-int32 address space
+        # used by k2's dense intersection.  Arc count is not the relevant
+        # quantity: k2 allocates/indexes metadata bounded by
+        # (num_frames + 1) * num_graph_states.
+        while True:
+            effective_edge_collar = (
+                None if params.edge_collar is None
+                else min(params.edge_collar, collar)
             )
-        else:
-            decoding_graphs = graph_compiler.compile_nospk(
-                texts,
-                start_frames,
-                num_frames_init,
-                collar=collar,
-                edge_collar=params.edge_collar,
-                interval_model=params.interval_model,
-                max_overlaps=params.total_max_overlaps,
-                original_topo=params.original_topo,
+            if use_segment_factor:
+                segment_ids = [list(range(len(cut_texts))) for cut_texts in texts]
+                decoding_graphs = graph_compiler.compile(
+                    texts,
+                    start_frames,
+                    num_frames_init,
+                    segment_ids,
+                    collar=collar,
+                    edge_collar=effective_edge_collar,
+                    interval_model=params.interval_model,
+                    max_overlaps=params.total_max_overlaps,
+                    original_topo=params.original_topo,
+                    # Every supervision receives a unique factor label; retain
+                    # the same cross-segment partial order as token-only mode.
+                    allow_self_overlap=True,
+                )
+            elif params.speaker_branch:
+                decoding_graphs = graph_compiler.compile(
+                    texts, start_frames, num_frames_init, speakers,
+                    collar=collar,
+                    edge_collar=effective_edge_collar,
+                    interval_model=params.interval_model,
+                    max_overlaps=params.total_max_overlaps,
+                    original_topo=params.original_topo,
+                    allow_self_overlap=params.allow_self_overlap,
+                )
+            else:
+                decoding_graphs = graph_compiler.compile_nospk(
+                    texts,
+                    start_frames,
+                    num_frames_init,
+                    collar=collar,
+                    edge_collar=effective_edge_collar,
+                    interval_model=params.interval_model,
+                    max_overlaps=params.total_max_overlaps,
+                    original_topo=params.original_topo,
+                    determinize=params.determinize_token_only_graph,
+                )
+            graph_state_splits_cpu = (
+                decoding_graphs.arcs.shape().row_splits(1).cpu()
+            )
+            graph_states_per_cut = (
+                graph_state_splits_cpu[1:] - graph_state_splits_cpu[:-1]
+            ).to(torch.int64)
+            intersection_products = (
+                graph_states_per_cut
+                * (x_lens.detach().cpu().to(torch.int64) + 1)
+            )
+            int32_product_limit = torch.iinfo(torch.int32).max - 1
+            worst_product, worst_index = intersection_products.max(dim=0)
+            if int(worst_product.item()) <= int32_product_limit:
+                break
+            if collar == 0:
+                raise RuntimeError(
+                    "A single training graph exceeds k2's int32 dense-"
+                    "intersection address space even at zero collar: "
+                    f"cut_index={int(worst_index.item())}, "
+                    f"frames={int(x_lens[worst_index].item())}, "
+                    f"graph_states={int(graph_states_per_cut[worst_index].item())}, "
+                    f"product={int(worst_product.item())}, "
+                    f"limit={int32_product_limit}"
+                )
+            old_collar = collar
+            collar //= 2
+            logging.warning(
+                "DYNAMIC_COLLAR_ADDRESS_GUARD cut_index=%d frames=%d "
+                "graph_states=%d address_product=%d int32_limit=%d "
+                "collar=%d->%d edge_collar=%s; recompiling batch",
+                int(worst_index.item()),
+                int(x_lens[worst_index].item()),
+                int(graph_states_per_cut[worst_index].item()),
+                int(worst_product.item()),
+                int32_product_limit,
+                old_collar,
+                collar,
+                effective_edge_collar,
             )
         
         decoding_graphs = decoding_graphs.to(device)
@@ -1001,29 +1773,242 @@ def compute_loss(
         
         end_sup = time.time()
 
-        loss_function = (
-            factorized_graph_ctc_loss if use_factorized_ctc else graph_ctc_loss
-        )
-        loss_inputs = (
-            (token_output, speaker_output, decoding_graphs, x_lens)
-            if use_factorized_ctc
-            else (ctc_output, decoding_graphs, x_lens)
-        )
-        ctc_loss = loss_function(
-            *loss_inputs,
-            supervision_segments=supervision_segments,
-            reduction=reduction,
-            output_beam=beam_size,
-            max_states=params.max_states,
-            allow_truncate=subsampling_factor - 1,
-            use_double_scores=use_double_scores,
-            # During validation, preserve infinite losses so a failed graph
-            # intersection cannot masquerade as a perfect zero loss. Training
-            # retains the historical behavior for now.
-            zero_infinity=is_training,
-            clamp_negative=True,
-            memory_reporter=memory_reporter,
-        )
+        factorized_diagnostics = None
+        zero_ctc_examples = 0
+        if use_factorized_ctc:
+            if use_segment_factor:
+                segment_collar = (
+                    collar
+                    if params.segment_factor_collar is None
+                    else params.segment_factor_collar
+                )
+                speaker_output = make_uniform_segment_log_probs(
+                    start_frames,
+                    num_frames_init,
+                    feature_lens,
+                    x_lens,
+                    token_output.size(1),
+                    segment_collar,
+                    device,
+                    decay_scale=params.segment_factor_decay_scale,
+                    floor_probability=params.segment_factor_floor_prob,
+                )
+            ctc_loss, factorized_diagnostics = factorized_graph_ctc_loss(
+                token_output,
+                speaker_output,
+                decoding_graphs,
+                x_lens,
+                supervision_segments=supervision_segments,
+                reduction=reduction,
+                output_beam=beam_size,
+                max_states=params.max_states,
+                allow_truncate=subsampling_factor - 1,
+                use_double_scores=use_double_scores,
+                # Preserve the historical training behavior, but retain the
+                # pre-zeroing losses below so every skipped example is visible.
+                zero_infinity=is_training,
+                clamp_negative=True,
+                memory_reporter=memory_reporter,
+                return_diagnostics=True,
+            )
+        else:
+            ctc_loss = graph_ctc_loss(
+                ctc_output,
+                decoding_graphs,
+                x_lens,
+                supervision_segments=supervision_segments,
+                reduction=reduction,
+                output_beam=beam_size,
+                max_states=params.max_states,
+                allow_truncate=subsampling_factor - 1,
+                use_double_scores=use_double_scores,
+                zero_infinity=is_training,
+                clamp_negative=True,
+                memory_reporter=memory_reporter,
+            )
+
+        if factorized_diagnostics is not None:
+            raw_losses = factorized_diagnostics["raw_losses"]
+            bad_examples = (~torch.isfinite(raw_losses)).nonzero().flatten()
+            zero_ctc_examples = int(bad_examples.numel()) if is_training else 0
+            if bad_examples.numel() and is_training:
+                cuts = batch["supervisions"].get("cut", [])
+                graph_state_splits = decoding_graphs.arcs.shape().row_splits(1)
+                graph_arc_splits = decoding_graphs.arcs.shape().row_splits(2)
+                for bad_index_tensor in bad_examples:
+                    bad_index = int(bad_index_tensor.item())
+                    num_input_frames = int(x_lens[bad_index].item())
+                    token_count = sum(
+                        len(graph_compiler.sp.encode(text))
+                        for text in texts[bad_index]
+                    )
+                    token_scores_i = token_output[
+                        bad_index, :num_input_frames
+                    ]
+                    token_scores_all_finite = bool(
+                        torch.isfinite(token_scores_i).all().item()
+                    )
+                    token_scores_valid = bool(
+                        (
+                            ~torch.isnan(token_scores_i)
+                            & ~torch.isposinf(token_scores_i)
+                        ).all().item()
+                        and torch.isfinite(token_scores_i).any(dim=-1).all().item()
+                    )
+
+                    factor_scores_i = speaker_output[
+                        bad_index, :num_input_frames
+                    ]
+                    if use_segment_factor:
+                        # Padded segment columns and hard-mask configurations
+                        # may legitimately contain -inf. Validate the real
+                        # segment distribution instead of requiring every
+                        # tensor element to be finite.
+                        num_factors = len(texts[bad_index])
+                        factor_scores_i = factor_scores_i[:, :num_factors]
+                        factor_rows_supported = bool(
+                            torch.isfinite(factor_scores_i)
+                            .any(dim=-1)
+                            .all()
+                            .item()
+                        )
+                        factor_rows_normalized = bool(
+                            torch.allclose(
+                                torch.logsumexp(factor_scores_i, dim=-1),
+                                torch.zeros(
+                                    num_input_frames,
+                                    dtype=factor_scores_i.dtype,
+                                    device=factor_scores_i.device,
+                                ),
+                                atol=1.0e-4,
+                                rtol=1.0e-4,
+                            )
+                        )
+                        factor_scores_valid = bool(
+                            (
+                                ~torch.isnan(factor_scores_i)
+                                & ~torch.isposinf(factor_scores_i)
+                            ).all().item()
+                            and factor_rows_supported
+                            and factor_rows_normalized
+                        )
+                    else:
+                        factor_rows_supported = bool(
+                            torch.isfinite(factor_scores_i)
+                            .any(dim=-1)
+                            .all()
+                            .item()
+                        )
+                        factor_rows_normalized = True
+                        factor_scores_valid = bool(
+                            torch.isfinite(factor_scores_i).all().item()
+                        )
+
+                    # Independently retry this one example with the explicit
+                    # token x speaker logits and standard k2 intersection.  A
+                    # finite reference loss isolates a factorized-CUDA bug;
+                    # non-finite in both paths indicates a graph/frame issue.
+                    reference_loss = float("nan")
+                    reference_error = None
+                    try:
+                        with torch.no_grad():
+                            token_i = token_output[
+                                bad_index : bad_index + 1, :num_input_frames
+                            ].detach()
+                            speaker_i = speaker_output[
+                                bad_index : bad_index + 1, :num_input_frames
+                            ].detach()
+                            blank_i = token_i[..., :1]
+                            joint_i = (
+                                token_i[..., 1:].unsqueeze(-1)
+                                + speaker_i.unsqueeze(-2)
+                            )
+                            joint_i = joint_i.permute(0, 1, 3, 2).reshape(
+                                1, num_input_frames, -1
+                            )
+                            expanded_i = torch.cat([blank_i, joint_i], dim=-1)
+                            graph_i = k2.create_fsa_vec(
+                                [decoding_graphs[bad_index]]
+                            )
+                            reference_loss = float(
+                                graph_ctc_loss(
+                                    expanded_i,
+                                    graph_i,
+                                    x_lens[bad_index : bad_index + 1],
+                                    reduction="none",
+                                    output_beam=beam_size,
+                                    max_states=params.max_states,
+                                    allow_truncate=subsampling_factor - 1,
+                                    use_double_scores=use_double_scores,
+                                    zero_infinity=False,
+                                    clamp_negative=False,
+                                )[0].item()
+                            )
+                    except Exception as error:
+                        reference_error = repr(error)
+
+                    if not token_scores_valid:
+                        cause = "invalid_token_model_scores"
+                    elif not factor_scores_valid:
+                        cause = (
+                            "invalid_segment_factor_scores"
+                            if use_segment_factor
+                            else "invalid_speaker_model_scores"
+                        )
+                    elif np.isfinite(reference_loss):
+                        cause = "factorized_cuda_mismatch"
+                    elif token_count > num_input_frames:
+                        cause = "token_lower_bound_exceeds_input_frames"
+                    elif reference_error is not None:
+                        cause = "reference_diagnostic_failed"
+                    else:
+                        cause = "no_accepting_path_in_factorized_or_reference_k2"
+
+                    graph_state_begin = int(graph_state_splits[bad_index].item())
+                    graph_state_end = int(graph_state_splits[bad_index + 1].item())
+                    graph_num_arcs = int(
+                        (
+                            graph_arc_splits[graph_state_end]
+                            - graph_arc_splits[graph_state_begin]
+                        ).item()
+                    )
+                    cut = cuts[bad_index] if bad_index < len(cuts) else None
+                    logging.error(
+                        "ZERO_CTC_DIAGNOSTIC cause=%s cut_id=%s recording_id=%s "
+                        "raw_loss=%s reference_expanded_loss=%s "
+                        "reference_error=%s input_frames=%d bpe_tokens=%d "
+                        "token_frame_ratio=%.4f supervisions=%d speakers=%d "
+                        "graph_states=%d graph_arcs=%d lattice_states=%d "
+                        "lattice_arcs=%d token_scores_all_finite=%s "
+                        "token_scores_valid=%s factor_scores_valid=%s "
+                        "factor_rows_supported=%s factor_rows_normalized=%s "
+                        "output_beam=%s "
+                        "max_states=%d start_frames=%s supervision_frames=%s",
+                        cause,
+                        getattr(cut, "id", f"batch-index-{bad_index}"),
+                        getattr(cut, "recording_id", "unknown"),
+                        float(raw_losses[bad_index].item()),
+                        reference_loss,
+                        reference_error,
+                        num_input_frames,
+                        token_count,
+                        token_count / max(num_input_frames, 1),
+                        len(texts[bad_index]),
+                        len(set(speakers[bad_index])),
+                        graph_state_end - graph_state_begin,
+                        graph_num_arcs,
+                        int(factorized_diagnostics["lattice_num_states"][bad_index].item()),
+                        int(factorized_diagnostics["lattice_num_arcs"][bad_index].item()),
+                        token_scores_all_finite,
+                        token_scores_valid,
+                        factor_scores_valid,
+                        factor_rows_supported,
+                        factor_rows_normalized,
+                        beam_size,
+                        params.max_states,
+                        start_frames[bad_index],
+                        num_frames_init[bad_index],
+                    )
         end_ctc = time.time()
         
     nnet_time = end_nnet - start
@@ -1034,6 +2019,7 @@ def compute_loss(
     info = MetricsTracker()
     info["frames"] = tot_frames
     info["ctc_loss"] = ctc_loss.detach().cpu().item()
+    info["zero_ctc_examples"] = zero_ctc_examples * tot_frames
     info["beam_size"] = beam_size * tot_frames 
     info["max_length"] = num_frames.max() * tot_frames
     info["max_duration"] = num_frames.max() * 0.01 * params.subsampling_factor * tot_frames
@@ -1042,6 +2028,17 @@ def compute_loss(
     info["num_texts"] = avg_num_texts * tot_frames
     info["avg_spk_density"] = (sum(densities) / len(densities)) * tot_frames
     info["arc_density"] = decoding_graphs.arcs.values().size(0)
+    if teacher_mask_stats is not None:
+        possible = teacher_mask_stats["possible_nonblank"]
+        allowed_fraction = (
+            teacher_mask_stats["allowed_nonblank"] / possible
+            if possible > 0
+            else 0.0
+        )
+        info["teacher_mask_allowed_fraction"] = allowed_fraction * tot_frames
+        info["teacher_mask_blank_only_windows"] = (
+            teacher_mask_stats["blank_only_windows"] * tot_frames
+        )
     info["pct_ctc"] = ctc_time / total_time * tot_frames
     info["pct_nnet"] = nnet_time / total_time * tot_frames
     info["pct_sup"] = sup_time / total_time * tot_frames
@@ -1100,7 +2097,10 @@ def compute_validation_loss(
             # ranks skip these keys, reduce() constructs different collective
             # payloads and deadlocks.  Preserve identical keys here and
             # restore the global failure marker after reduction below.
-            loss_info["ctc_loss"] = 0.0
+            if params.diarization_loss == "none":
+                loss_info["ctc_loss"] = 0.0
+            else:
+                loss_info["diarization_loss"] = 0.0
             loss_info["loss"] = 0.0
         tot_loss = tot_loss + loss_info
         if params.max_valid_batches > 0 and batch_idx + 1 >= params.max_valid_batches:
@@ -1130,7 +2130,10 @@ def compute_validation_loss(
         # Restore failure semantics: any failed validation batch makes the
         # aggregate loss non-finite rather than silently reporting zero or a
         # partial average.
-        tot_loss["ctc_loss"] = float("inf")
+        if params.diarization_loss == "none":
+            tot_loss["ctc_loss"] = float("inf")
+        else:
+            tot_loss["diarization_loss"] = float("inf")
         tot_loss["loss"] = float("inf")
 
     loss_value = tot_loss["loss"] / tot_loss["frames"]
@@ -1262,7 +2265,10 @@ def train_one_epoch(
 
             params.batch_idx_train += 1
             if not is_frozen:
-                scheduler.step()
+                if hasattr(scheduler, "step_batch"):
+                    scheduler.step_batch(params.batch_idx_train)
+                else:
+                    scheduler.step()
             
             scaler.step(optimizer)
             scaler.update()
@@ -1368,7 +2374,8 @@ def train_one_epoch(
 
             logging.info(
                 f"Epoch {params.cur_epoch}, "
-                f"batch {batch_idx}, loss[{loss_info}], "
+                f"microbatch {batch_idx}, update {params.batch_idx_train}, "
+                f"loss[{loss_info}], "
                 f"tot_loss[{tot_loss}], batch size: {batch_size}, "
                 f"accum_grad: {params.accum_grad}, "
                 f"lr: {cur_lr:.2e}, "
@@ -1472,6 +2479,80 @@ def run(rank, world_size, args):
     #torch.cuda.set_device(local_rank)
     params = get_params()
     params.update(vars(args))
+    if params.diarization_loss != "none":
+        if params.sort_strategy != "start_time":
+            raise ValueError(
+                "Diarization-only FIFO targets require --sort-strategy start_time"
+            )
+        if params.frozen_token_teacher_checkpoint:
+            raise ValueError(
+                "Diarization-only training has no ASR teacher; omit "
+                "--frozen-token-teacher-checkpoint"
+            )
+        if params.token_only_segment_factor:
+            raise ValueError(
+                "Diarization-only training cannot use --token-only-segment-factor"
+            )
+        powerset_class_bitmasks(params.max_num_spks, params.max_overlap)
+    if params.token_only_segment_factor:
+        if params.speaker_branch:
+            raise ValueError(
+                "--token-only-segment-factor requires --speaker-branch false"
+            )
+        if not params.factorized_ctc_loss:
+            raise ValueError(
+                "--token-only-segment-factor requires --factorized-ctc-loss true"
+            )
+        if not params.factorized_token_speaker_output:
+            raise ValueError(
+                "--token-only-segment-factor requires "
+                "--factorized-token-speaker-output true so the loss receives "
+                "the token branch rather than expanded speaker x token labels"
+            )
+        if params.determinize_token_only_graph:
+            raise ValueError(
+                "Segment-labelled graphs are already unambiguous; do not combine "
+                "--token-only-segment-factor with "
+                "--determinize-token-only-graph"
+            )
+        if (
+            params.segment_factor_collar is not None
+            and params.segment_factor_collar < 0
+        ):
+            raise ValueError("--segment-factor-collar must be non-negative")
+        if params.segment_factor_decay_scale <= 0:
+            raise ValueError("--segment-factor-decay-scale must be positive")
+        if not 0.0 <= params.segment_factor_floor_prob < 1.0:
+            raise ValueError(
+                "--segment-factor-floor-prob must be in [0, 1)"
+            )
+    if params.frozen_token_teacher_checkpoint:
+        if not params.speaker_branch:
+            raise ValueError(
+                "--frozen-token-teacher-checkpoint requires --speaker-branch true"
+            )
+        if not params.factorized_token_speaker_output:
+            raise ValueError(
+                "Frozen-token-teacher training requires "
+                "--factorized-token-speaker-output true"
+            )
+        if not params.factorized_ctc_loss:
+            raise ValueError(
+                "Frozen-token-teacher training requires --factorized-ctc-loss true"
+            )
+        if params.token_only_segment_factor:
+            raise ValueError(
+                "Frozen-token-teacher training cannot use the segment factor"
+            )
+        if params.sort_strategy != "start_time":
+            raise ValueError(
+                "Frozen-token-teacher speaker labels are FIFO; use "
+                "--sort-strategy start_time"
+            )
+        if params.teacher_local_mask_window_duration <= 0:
+            raise ValueError("Teacher local-mask window must be positive")
+        if params.teacher_local_mask_boundary_collar < 0:
+            raise ValueError("Teacher local-mask collar must be non-negative")
     #params.master_port = int(os.environ.get("MASTER_PORT", 12355))
     fix_random_seed(params.seed)
     if world_size > 1:
@@ -1491,12 +2572,15 @@ def run(rank, world_size, args):
     if torch.cuda.is_available():
         device = torch.device("cuda", rank)
 
-    graph_compiler = MDCTCGraphCompiler(
-        params.lang_dir,
-        device='cpu',
-    )
-
-    params.vocab_size = graph_compiler.sp.vocab_size()
+    if params.diarization_loss == "none":
+        graph_compiler = MDCTCGraphCompiler(
+            params.lang_dir,
+            device='cpu',
+        )
+        params.vocab_size = graph_compiler.sp.vocab_size()
+    else:
+        graph_compiler = None
+        params.vocab_size = 0
     params.subsampling_factor = 4 if params.downsample else 2
     logging.info("About to create model")
 
@@ -1508,7 +2592,17 @@ def run(rank, world_size, args):
     model_avg: Optional[nn.Module] = None
     if rank == 0:
         # model_avg is only used with rank 0
-        model_avg = copy.deepcopy(model).to(torch.float64)
+        if isinstance(model, FrozenTokenTeacherSpeakerModel):
+            # The immutable 4.8GB teacher is neither averaged nor checkpointed.
+            # Detach it before deepcopy so rank zero does not create a useless
+            # second CPU copy for model_avg.
+            token_teacher = model.release_token_teacher()
+            try:
+                model_avg = copy.deepcopy(model).to(torch.float64)
+            finally:
+                model.attach_token_teacher(token_teacher)
+        else:
+            model_avg = copy.deepcopy(model).to(torch.float64)
  
     assert params.start_epoch > 0, params.start_epoch
     checkpoints = load_checkpoint_if_available(
@@ -1516,6 +2610,8 @@ def run(rank, world_size, args):
     )
 
     model.to(device)
+    if isinstance(model, FrozenTokenTeacherSpeakerModel):
+        model.move_token_teacher(device)
     if world_size > 1:
         logging.info("Using DDP")
         model = DDP(model, device_ids=[rank], find_unused_parameters=True)
@@ -1525,21 +2621,64 @@ def run(rank, world_size, args):
         [name_param_pair[0] for name_param_pair in model.named_parameters()]
     )
     
-    optimizer = Adam(
-        list(filter(lambda p: p.requires_grad, model.parameters())),
-        lr=params.base_lr,
-        betas=(0.9, 0.98), eps=1e-08, weight_decay=params.weight_decay, 
-    )
- 
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr=params.base_lr,
-        total_steps=params.total_steps,
-        pct_start=params.pct_start,
-        anneal_strategy="cos",
-        div_factor=200,
-    )
-   
-    init_lr = scheduler.get_lr()[0]
+    if params.optimizer_name == "scaled_adam":
+        if params.lr_scheduler_name != "eden2":
+            raise ValueError("ScaledAdam currently requires --lr-scheduler-name eden2")
+        from optim import Eden2, ScaledAdam
+
+        optimizer = ScaledAdam(
+            get_parameter_groups_with_lrs(
+                model, lr=params.base_lr, include_names=True
+            ),
+            lr=params.base_lr,
+            clipping_scale=2.0,
+        )
+        scheduler = Eden2(
+            optimizer,
+            lr_batches=params.lr_batches,
+            warmup_batches=params.lr_warmup_updates,
+            warmup_start=params.lr_warmup_start,
+        )
+        scheduler.step_batch(params.batch_idx_train)
+        init_lr = scheduler.get_last_lr()[0]
+    else:
+        if params.lr_scheduler_name != "one_cycle":
+            raise ValueError("Adam currently requires --lr-scheduler-name one_cycle")
+        optimizer = Adam(
+            list(filter(lambda p: p.requires_grad, model.parameters())),
+            lr=params.base_lr,
+            betas=(0.9, 0.98),
+            eps=1e-08,
+            weight_decay=params.weight_decay,
+        )
+
+        if params.freeze_lr <= 0:
+            raise ValueError(
+                f"Expected --freeze-lr > 0, got {params.freeze_lr}"
+            )
+        unfrozen_steps = params.total_steps - params.freeze_iters
+        if unfrozen_steps < 1:
+            raise ValueError(
+                "--total-steps must be larger than --freeze-iters; got "
+                f"{params.total_steps} and {params.freeze_iters}"
+            )
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=params.base_lr,
+            total_steps=unfrozen_steps,
+            pct_start=params.pct_start,
+            anneal_strategy="cos",
+            # Newer pretrained-encoder recipes use a low freeze LR and expect
+            # a continuous transition.  The original WavLM recipe instead
+            # trains its newly initialized heads at a much larger freeze LR;
+            # retain its historical OneCycle start factor in that case.
+            div_factor=(
+                params.base_lr / params.freeze_lr
+                if params.freeze_lr <= params.base_lr
+                else 200.0
+            ),
+        )
+        init_lr = scheduler.get_lr()[0]
     if params.batch_idx_train < params.freeze_iters:
         if isinstance(model, DDP):
             model.module.freeze_encoder()

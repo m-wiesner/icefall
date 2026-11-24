@@ -12,7 +12,7 @@ from typing import Callable, Dict, List, Union
 
 import torch
 from torch.utils.data.dataloader import default_collate
-from lhotse import validate
+from lhotse import fastcopy, validate
 from lhotse.cut import CutSet
 from lhotse.dataset.collation import collate_audio
 from lhotse.dataset.input_strategies import BatchIO, AudioSamples
@@ -124,6 +124,8 @@ class K2MultiTalkerSpeechRecognitionDataset(torch.utils.data.Dataset):
         input_transforms: List[Callable[[torch.Tensor], torch.Tensor]] = None,
         input_strategy: BatchIO = AudioSamples(),
         sort_strategy: str = 'start_time',
+        downmix_multichannel: bool = False,
+        audio_sampling_rate: int = 0,
     ):
         """
         k2 ASR IterableDataset constructor.
@@ -148,6 +150,8 @@ class K2MultiTalkerSpeechRecognitionDataset(torch.utils.data.Dataset):
         self.input_transforms = ifnone(input_transforms, [])
         self.input_strategy = input_strategy
         self.sort_strategy = sort_strategy
+        self.downmix_multichannel = downmix_multichannel
+        self.audio_sampling_rate = audio_sampling_rate
 
         # This attribute is a workaround to constantly growing HDF5 memory
         # throughout the epoch. It regularly closes open file handles to
@@ -161,6 +165,35 @@ class K2MultiTalkerSpeechRecognitionDataset(torch.utils.data.Dataset):
         of max_duration and max_cuts.
         """
         self.hdf5_fix.update()
+
+        # DataLoader workers may unpickle dataset instances created before these
+        # evaluation-only options were added.  Default missing attributes to the
+        # historical behavior so running/resumed training jobs remain compatible.
+        audio_sampling_rate = getattr(self, "audio_sampling_rate", 0)
+        downmix_multichannel = getattr(self, "downmix_multichannel", False)
+        if audio_sampling_rate or downmix_multichannel:
+            downmixed = []
+            for cut in cuts:
+                if audio_sampling_rate and cut.sampling_rate != audio_sampling_rate:
+                    cut = cut.resample(audio_sampling_rate)
+                channels = cut.channel if isinstance(cut.channel, list) else [cut.channel]
+                if downmix_multichannel and len(channels) > 1:
+                    original_supervisions = cut.supervisions
+                    cut = cut.to_mono(mono_downmix=True).perturb_volume(
+                        1.0 / len(channels)
+                    )
+                    # MultiCut.to_mono() copies any supervision spanning all
+                    # channels into each channel before mixing. Restore the
+                    # original supervision list exactly once for ASR scoring.
+                    cut = fastcopy(
+                        cut,
+                        supervisions=[
+                            fastcopy(supervision, channel=0)
+                            for supervision in original_supervisions
+                        ],
+                    )
+                downmixed.append(cut)
+            cuts = CutSet.from_cuts(downmixed)
 
         # Sort the cuts by duration so that the first one determines the batch time dimensions.
         cuts = cuts.sort_by_duration(ascending=False)

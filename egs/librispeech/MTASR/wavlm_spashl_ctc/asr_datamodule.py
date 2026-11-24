@@ -10,18 +10,29 @@
 
 
 import argparse
+import gzip
+import json
 import logging
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import torch
-from lhotse import CutSet, Fbank, FbankConfig, load_manifest, load_manifest_lazy
+from lhotse import (
+    CutSet,
+    Fbank,
+    FbankConfig,
+    SupervisionSegment,
+    fastcopy,
+    load_manifest,
+    load_manifest_lazy,
+)
 from lhotse.dataset import (
     CutConcatenate,
     CutMix,
     DynamicBucketingSampler,
     PrecomputedFeatures,
+    SimpleCutSampler,
     SpecAugment,
 )
 from dataset import K2MultiTalkerSpeechRecognitionDataset
@@ -36,6 +47,7 @@ from tqdm import tqdm
 import random
 
 from icefall.utils import str2bool
+from text_normalization import normalize_english_transcript
 
 
 class _SeedWorkers:
@@ -46,26 +58,191 @@ class _SeedWorkers:
         fix_random_seed(self.seed + worker_id)
 
 
-class _RepeatCutManifests:
-    """Iterate through every fixed shard once per pass, for unlimited passes."""
+class _SkipSamplerBatches:
+    """Replay a deterministic sampler while discarding an initial prefix."""
 
-    def __init__(self, paths, seed: int):
-        self.paths = tuple(Path(p) for p in paths)
-        self.seed = seed
+    def __init__(self, sampler, num_batches: int):
+        self.sampler = sampler
+        self.num_batches = num_batches
 
     def __iter__(self):
+        iterator = iter(self.sampler)
+        logging.info("Replaying and skipping %d sampler batches", self.num_batches)
+        for index in range(self.num_batches):
+            next(iterator)
+            if (index + 1) % 50000 == 0:
+                logging.info("Skipped %d/%d sampler batches", index + 1, self.num_batches)
+        logging.info("Finished deterministic sampler replay")
+        yield from iterator
+
+    def __getattr__(self, name):
+        return getattr(self.sampler, name)
+
+    def state_dict(self):
+        return self.sampler.state_dict()
+
+    def load_state_dict(self, state_dict):
+        return self.sampler.load_state_dict(state_dict)
+
+    def set_epoch(self, epoch):
+        return self.sampler.set_epoch(epoch)
+
+
+class _RepeatCutSources:
+    """Independently repeat synthetic and YODAS streams, then mix by type."""
+
+    def __init__(
+        self,
+        manifest_paths,
+        shar_dirs,
+        yodas_schemes,
+        seed: int,
+        yodas_mix_weight: float,
+    ):
+        self.manifest_paths = tuple(Path(p) for p in manifest_paths)
+        self.shar_dirs = tuple(Path(p) for p in shar_dirs)
+        self.yodas_schemes = tuple(yodas_schemes)
+        self.seed = seed
+        self.yodas_mix_weight = yodas_mix_weight
+
+    def _repeat_standard_sources(self):
         epoch = 0
         while True:
-            cutsets = [load_manifest_lazy(path) for path in self.paths]
+            cutsets = [load_manifest_lazy(path) for path in self.manifest_paths]
+            cutsets.extend(CutSet.from_shar(in_dir=path) for path in self.shar_dirs)
             if len(cutsets) == 1:
                 yield from cutsets[0]
-                epoch += 1
-                continue
-            # mux() consumes all four finite shards without replacement. Its
-            # deterministic seed changes per pass so shard interleaving does
-            # not repeat exactly, while every rank still sees the same order.
-            yield from CutSet.mux(*cutsets, seed=self.seed + epoch)
+            else:
+                yield from CutSet.mux(*cutsets, seed=self.seed + epoch)
             epoch += 1
+
+    def _repeat_yodas_sources(self):
+        epoch = 0
+        while True:
+            cutsets = [CutSet(_YodasSharGroups(**spec)) for spec in self.yodas_schemes]
+            if len(cutsets) == 1:
+                yield from cutsets[0]
+            else:
+                yield from CutSet.mux(*cutsets, seed=self.seed + epoch)
+            epoch += 1
+
+    def __iter__(self):
+        has_standard = bool(self.manifest_paths or self.shar_dirs)
+        has_yodas = bool(self.yodas_schemes)
+        if has_standard and has_yodas:
+            # Both inputs are infinite repeat streams, so the requested corpus
+            # ratio remains stable rather than changing when YODAS exhausts.
+            yield from CutSet.mux(
+                CutSet(self._repeat_standard_sources()),
+                CutSet(self._repeat_yodas_sources()),
+                weights=[1.0 - self.yodas_mix_weight, self.yodas_mix_weight],
+                seed=self.seed,
+            )
+        elif has_standard:
+            yield from self._repeat_standard_sources()
+        elif has_yodas:
+            yield from self._repeat_yodas_sources()
+
+
+class _YodasSharGroups:
+    """Metadata-only 60 s views over selected parent recordings in YODAS SHAR."""
+
+    def __init__(
+        self,
+        scheme_dir,
+        hypothesis="doverlap",
+        max_pause=1.0,
+        max_duration=60.0,
+        min_speakers=2,
+        max_speakers=8,
+    ):
+        self.scheme_dir = Path(scheme_dir)
+        self.hypothesis = hypothesis
+        self.max_pause = max_pause
+        self.max_duration = max_duration
+        self.min_speakers = min_speakers
+        self.max_speakers = max_speakers
+
+    @staticmethod
+    def _swap_supervisions(cut, hypothesis):
+        h = cut.custom["hypotheses"][hypothesis]
+        sups = [
+            SupervisionSegment(
+                id=f"{cut.id}-sup{i:03d}",
+                recording_id=cut.recording_id,
+                start=round(seg["start"], 3),
+                duration=round(seg["end"] - seg["start"], 3),
+                channel=0,
+                text=normalize_english_transcript(seg["text"]),
+                language=h.get("language"),
+                speaker=seg["speaker"],
+            )
+            for i, seg in enumerate(h["segments"])
+            if round(seg["end"] - seg["start"], 3) > 0
+            and normalize_english_transcript(seg["text"])
+        ]
+        return fastcopy(cut, supervisions=sups)
+
+    def _split(self, cut):
+        sups = sorted(cut.supervisions, key=lambda s: s.start)
+        if not sups:
+            return
+        groups, group, end = [], [sups[0]], sups[0].end
+        for sup in sups[1:]:
+            if sup.start - end <= self.max_pause:
+                group.append(sup)
+                end = max(end, sup.end)
+            else:
+                groups.append(group)
+                group, end = [sup], sup.end
+        groups.append(group)
+        for group_idx, group in enumerate(groups):
+            start, end = group[0].start, max(s.end for s in group)
+            piece_idx = 0
+            while start < end:
+                piece_end = min(start + self.max_duration, end)
+                piece = cut.truncate(
+                    offset=start,
+                    duration=piece_end - start,
+                    keep_excessive_supervisions=False,
+                    preserve_id=True,
+                ).with_id(f"{cut.id}-g{group_idx}-{piece_idx}")
+                num_speakers = len({s.speaker for s in piece.supervisions})
+                if self.min_speakers <= num_speakers <= self.max_speakers:
+                    yield piece
+                start = piece_end
+                piece_idx += 1
+
+    def __iter__(self):
+        meta_dir = self.scheme_dir.parent / f"{self.scheme_dir.name}.meta"
+        keep_ids = set((meta_dir / "keep_ids.txt").read_text().splitlines())
+        scheme = json.loads((meta_dir / "scheme.json").read_text())
+        shar_dir = Path(scheme["shar_dir"])
+
+        cuts_shards, recording_shards = [], []
+        shard_names = scheme.get("kept_source_shards")
+        candidate_paths = (
+            [shar_dir / name for name in shard_names]
+            if shard_names
+            else sorted(shar_dir.glob("cuts.*.jsonl.gz"))
+        )
+        for cuts_path in candidate_paths:
+            if not shard_names:
+                with gzip.open(cuts_path, "rt", encoding="utf-8") as stream:
+                    if not any(json.loads(line)["id"] in keep_ids for line in stream):
+                        continue
+            suffix = cuts_path.name.removeprefix("cuts.").removesuffix(".jsonl.gz")
+            cuts_shards.append(cuts_path)
+            recording_shards.append(shar_dir / f"recording.{suffix}.tar")
+
+        parents = CutSet.from_shar(
+            fields={"cuts": cuts_shards, "recording": recording_shards}
+        )
+        for parent in parents:
+            if parent.id not in keep_ids:
+                continue
+            parent = self._swap_supervisions(parent, self.hypothesis)
+            yield from self._split(parent)
 
 
 class LibriSpeechAsrDataModule:
@@ -142,6 +319,16 @@ class LibriSpeechAsrDataModule:
             help=(
                 "Number of cuts used to pre-populate dynamic buckets before "
                 "sampling. Use a small value such as 200 for smoke tests."
+            ),
+        )
+        group.add_argument(
+            "--fixed-sampler-skip-batches",
+            type=int,
+            default=0,
+            help=(
+                "For deterministic fixed-manifest reproduction, reconstruct "
+                "the original sampler stream and discard this many batches "
+                "before loading audio."
             ),
         )
         group.add_argument(
@@ -232,6 +419,39 @@ class LibriSpeechAsrDataModule:
                 "simulation and repeatedly multiplexes the supplied manifests."
             ),
         )
+        group.add_argument(
+            "--train-shar-dirs",
+            nargs="+",
+            default=None,
+            help=(
+                "One or more finite Lhotse SHAR directories to mix with "
+                "--train-cut-manifests and repeat for update-based training."
+            ),
+        )
+        group.add_argument(
+            "--train-yodas-scheme-dirs",
+            nargs="+",
+            default=None,
+            help=(
+                "Filtered YODAS scheme directories created by "
+                "build_filtered_cutset.py. Sixty-second supervision-only "
+                "views are generated while streaming the original SHAR."
+            ),
+        )
+        group.add_argument("--yodas-hypothesis", default="doverlap")
+        group.add_argument("--yodas-group-max-pause", type=float, default=1.0)
+        group.add_argument("--yodas-group-max-duration", type=float, default=60.0)
+        group.add_argument("--yodas-min-speakers", type=int, default=2)
+        group.add_argument("--yodas-max-speakers", type=int, default=8)
+        group.add_argument(
+            "--yodas-mix-weight",
+            type=float,
+            default=0.5,
+            help=(
+                "Probability of drawing from the independently repeated YODAS "
+                "stream when mixing it with fixed manifests (default: 0.5)."
+            ),
+        )
 
     def train_dataloaders(
         self,
@@ -253,7 +473,11 @@ class LibriSpeechAsrDataModule:
             sort_strategy=self.args.sort_strategy,
         )
 
-        fixed_training_cuts = bool(self.args.train_cut_manifests)
+        fixed_training_cuts = bool(
+            self.args.train_cut_manifests
+            or self.args.train_shar_dirs
+            or self.args.train_yodas_scheme_dirs
+        )
         sampler_cls = (
             DynamicBucketingSampler
             if fixed_training_cuts
@@ -287,6 +511,15 @@ class LibriSpeechAsrDataModule:
                 "CutSplice curriculum to reconstruct."
             )
 
+        if self.args.fixed_sampler_skip_batches > 0:
+            if not fixed_training_cuts:
+                raise ValueError(
+                    "--fixed-sampler-skip-batches requires fixed training sources"
+                )
+            train_sampler = _SkipSamplerBatches(
+                train_sampler, self.args.fixed_sampler_skip_batches
+            )
+
         # 'seed' is derived from the current random state, which will have
         # previously been set in the main process.
         seed = torch.randint(0, 100000, ()).item()
@@ -308,15 +541,31 @@ class LibriSpeechAsrDataModule:
             return_cuts = self.args.return_cuts,
             cut_transforms=[],
             sort_strategy=self.args.sort_strategy,
+            downmix_multichannel=getattr(self.args, "downmix_multichannel", False),
+            audio_sampling_rate=getattr(self.args, "input_sampling_rate", 0),
         )
         
-        valid_sampler = DynamicBucketingSampler(
-            cuts_valid,
-            max_duration=self.args.max_duration,
-            shuffle=False,
-            num_cuts_for_bins_estimate=self.args.num_cuts_for_bins_estimate,
-            buffer_size=self.args.sampler_buffer_size,
-        )
+        # DynamicBucketingSampler requires num_buckets > 1.  A single bucket
+        # means bucketing is disabled, so use the ordinary sampler instead.
+        # Also retain the cheap path for an eager one-cut diagnostic set.
+        if self.args.num_buckets <= 1 or (
+            not cuts_valid.is_lazy and len(cuts_valid) == 1
+        ):
+            valid_sampler = SimpleCutSampler(
+                cuts_valid,
+                max_duration=self.args.max_duration,
+                max_cuts=self.args.max_cuts,
+                shuffle=False,
+            )
+        else:
+            valid_sampler = DynamicBucketingSampler(
+                cuts_valid,
+                max_duration=self.args.max_duration,
+                shuffle=False,
+                num_buckets=self.args.num_buckets,
+                num_cuts_for_bins_estimate=self.args.num_cuts_for_bins_estimate,
+                buffer_size=self.args.sampler_buffer_size,
+            )
         
         valid_dl = DataLoader(
             validate,
@@ -333,6 +582,8 @@ class LibriSpeechAsrDataModule:
         test = K2MultiTalkerSpeechRecognitionDataset(
             return_cuts=self.args.return_cuts,
             sort_strategy=self.args.sort_strategy,
+            downmix_multichannel=getattr(self.args, "downmix_multichannel", False),
+            audio_sampling_rate=getattr(self.args, "input_sampling_rate", 0),
         )
         sampler = DynamicBucketingSampler(
             cuts, max_duration=self.args.max_duration, shuffle=False
@@ -367,22 +618,60 @@ class LibriSpeechAsrDataModule:
     @lru_cache()
     def train_cuts(self) -> CutSet:
         logging.info("About to get train cuts")
-        if self.args.train_cut_manifests:
-            paths = [Path(p) for p in self.args.train_cut_manifests]
+        if (
+            self.args.train_cut_manifests
+            or self.args.train_shar_dirs
+            or self.args.train_yodas_scheme_dirs
+        ):
+            paths = [Path(p) for p in (self.args.train_cut_manifests or [])]
+            shar_dirs = [Path(p) for p in (self.args.train_shar_dirs or [])]
+            yodas_dirs = [
+                Path(p) for p in (self.args.train_yodas_scheme_dirs or [])
+            ]
             missing = [str(p) for p in paths if not p.is_file()]
+            missing.extend(str(p) for p in shar_dirs if not p.is_dir())
+            missing.extend(str(p) for p in yodas_dirs if not p.is_dir())
             if missing:
                 raise FileNotFoundError(
                     "Missing fixed training CutSet manifest(s): " + ", ".join(missing)
                 )
             logging.info(
-                "Using %d fixed training CutSet manifests: %s",
+                "Using %d fixed manifests, %d SHAR dirs, and %d YODAS schemes: %s",
                 len(paths),
-                ", ".join(map(str, paths)),
+                len(shar_dirs),
+                len(yodas_dirs),
+                ", ".join(map(str, paths + shar_dirs + yodas_dirs)),
             )
             # Training is update-based and normally consumes an infinite
             # CutSplice stream. Consume every finite FastMSS shard once per
             # pass, then begin another deterministically re-interleaved pass.
-            return CutSet(_RepeatCutManifests(paths, seed=self.args.seed))
+            yodas_schemes = [
+                {
+                    "scheme_dir": path,
+                    "hypothesis": self.args.yodas_hypothesis,
+                    "max_pause": self.args.yodas_group_max_pause,
+                    "max_duration": self.args.yodas_group_max_duration,
+                    "min_speakers": self.args.yodas_min_speakers,
+                    "max_speakers": self.args.yodas_max_speakers,
+                }
+                for path in yodas_dirs
+            ]
+            if yodas_schemes and paths + shar_dirs and not (
+                0.0 < self.args.yodas_mix_weight < 1.0
+            ):
+                raise ValueError(
+                    "--yodas-mix-weight must be between 0 and 1 when mixing "
+                    f"corpora; got {self.args.yodas_mix_weight}"
+                )
+            return CutSet(
+                _RepeatCutSources(
+                    paths,
+                    shar_dirs,
+                    yodas_schemes,
+                    seed=self.args.seed,
+                    yodas_mix_weight=self.args.yodas_mix_weight,
+                )
+            )
         speakers = list(Path("data/manifests/librispeech_speakers").rglob("*.jsonl.gz"))
         num_spks = len(speakers) 
         weight = 1/num_spks

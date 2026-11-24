@@ -376,17 +376,13 @@ def decode_one_batch(
     preds = ctc_output.argmax(-1)
     times = get_nonzero_span_starts(preds, params)
     hyps = [
-        preds[i].unique_consecutive(dim=-1)[preds[i].unique_consecutive(dim=-1) != 0].squeeze(0)
+        preds[i].unique_consecutive(dim=-1)[
+            preds[i].unique_consecutive(dim=-1) != 0
+        ].reshape(-1)
         for i in range(preds.size(0))
     ]
-    if getattr(params, "speaker_branch", True) and not params.marginal:
-        units = [
-            hyps[i].remainder((params.vocab_size - 1)).view(-1).tolist()
-            for i in range(preds.size(0))
-        ]
-    else:
-        # Token-only outputs already use the SentencePiece IDs directly.
-        units = [hyps[i].view(-1).tolist() for i in range(preds.size(0))]
+    # This recipe's output alphabet is the SentencePiece vocabulary itself.
+    units = [hyps[i].view(-1).tolist() for i in range(preds.size(0))]
     
     cut_ids = [c.id for c in batch["supervisions"]["cut"]]
     

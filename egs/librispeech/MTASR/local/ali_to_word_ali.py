@@ -17,7 +17,16 @@ def main(args):
     alis = json.load(open(args.alis))
     word_alis = []
     for utt in alis:
-        utt_ali = sorted(utt[1], key=lambda x: (x[1], x[3]))
+        # CTC topology arcs may surface as explicit blank rows in an otherwise
+        # token-level best path.  They are timing separators, not BPE pieces;
+        # concatenating them creates invalid words such as WILKINS<blk>LY.
+        utt_ali = [
+            row for row in sorted(utt[1], key=lambda x: (x[1], x[3]))
+            if row[2] not in ("<blk>", "<eps>", "")
+        ]
+        if not utt_ali:
+            word_alis.append([utt[0], []])
+            continue
         curr_word = [utt_ali[0]]
         new_utt = []
         for spk, seg, token, start, dur in utt_ali[1:]:

@@ -344,17 +344,15 @@ def decode_one_batch(
     preds = ctc_output.argmax(-1)
     times = get_nonzero_span_starts(preds, params)
     hyps = [
-        preds[i].unique_consecutive(dim=-1)[preds[i].unique_consecutive(dim=-1) != 0].squeeze(0)
+        preds[i].unique_consecutive(dim=-1)[
+            preds[i].unique_consecutive(dim=-1) != 0
+        ].reshape(-1)
         for i in range(preds.size(0))
     ]
-    spks = [
-        hyps[i] // (params.vocab_size - 1)
-        for i in range(preds.size(0))
-    ]
-    units = [
-        hyps[i].remainder((params.vocab_size - 1))
-        for i in range(preds.size(0))
-    ]
+    # Token-only WavLM emits SentencePiece IDs directly.  Treating these as
+    # speaker x token joint labels corrupts token V-1 and invents a speaker.
+    spks = [torch.zeros_like(hyp) for hyp in hyps]
+    units = hyps
     
     cut_ids = [c.id for c in batch["supervisions"]["cut"]]
     tokens = {}

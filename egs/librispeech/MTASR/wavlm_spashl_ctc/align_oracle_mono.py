@@ -51,7 +51,7 @@ from lhotse.cut import Cut
 from lhotse.dataset.sampling.base import CutSampler
 from lhotse.utils import fix_random_seed
 from lhotse import CutSet
-from model import MDCTCModel
+from model import MDCTCModel, split_joint_labels
 from torch.optim import Adam
 from torch import Tensor
 from torch.cuda.amp import GradScaler
@@ -658,8 +658,11 @@ def align_one_batch(
         # Now build ragged frames with the *new* shape
         ragged_frames = k2.RaggedTensor(units.shape, frames_kept)
         times = k2.RaggedTensor(ragged_frames.shape, ragged_frames.values * params.frame_duration)
-        spks = k2.RaggedTensor(units.shape, units.values // (params.vocab_size - 1))
-        syms = k2.RaggedTensor(units.shape, units.values.remainder((params.vocab_size - 1)))
+        speaker_values, token_values = split_joint_labels(
+            units.values, params.vocab_size
+        )
+        spks = k2.RaggedTensor(units.shape, speaker_values)
+        syms = k2.RaggedTensor(units.shape, token_values)
  
         cut_ids = [c.id for c in batch["supervisions"]["cut"]]
         for i in range(times.shape.dim0):

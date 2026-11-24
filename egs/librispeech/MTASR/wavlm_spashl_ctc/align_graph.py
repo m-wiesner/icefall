@@ -33,6 +33,7 @@ from train import (
     get_params,
     compute_avg_speaker_density_per_example,
 )
+from model import split_joint_labels
 
 from icefall.bpe_graph_compiler import BpeCtcTrainingGraphCompiler
 from icefall.checkpoint import (
@@ -293,8 +294,9 @@ def align_one_batch(
         t = best_path[i].aux_labels[:-1] 
         nonzero_indices = torch.nonzero(t, as_tuple=False).squeeze().view(-1)
         nonzero_values = t[nonzero_indices]
-        units = nonzero_values.remainder((params.vocab_size - 1)).view(-1)
-        spks = (nonzero_values // (params.vocab_size - 1)).view(-1)
+        spks, units = split_joint_labels(nonzero_values, params.vocab_size)
+        units = units.view(-1)
+        spks = spks.view(-1)
 
         # Compute steps to next non-zero
         next_nonzero = torch.roll(nonzero_indices, shifts=-1).view(-1)

@@ -20,6 +20,116 @@ import logging
 import math
 
 
+class DeterministicBpeDecomposer:
+    """Split canonical SentencePiece tokens into shorter vocabulary pieces.
+
+    Each canonical piece is treated independently.  Pieces no longer than
+    ``max_visible_characters`` are therefore left exactly as SentencePiece
+    produced them; longer pieces are deterministically segmented into the
+    fewest existing vocabulary pieces satisfying the limit.  Ties prefer
+    longer pieces earlier and then lower token IDs.  Consequently, raising
+    the limit past the longest canonical piece recovers the original BPE
+    sequence exactly.
+
+    The SentencePiece word-boundary marker is not counted as a visible
+    character, but it remains part of the string that must be reconstructed.
+    If an oversized piece cannot be decomposed exactly, it is retained rather
+    than changing the transcript.
+    """
+
+    def __init__(self, sp, max_visible_characters: int):
+        if max_visible_characters < 1:
+            raise ValueError(
+                "max_visible_characters must be positive, got "
+                f"{max_visible_characters}"
+            )
+        self.sp = sp
+        self.max_visible_characters = max_visible_characters
+        self._piece_to_id = {}
+        for token_id in range(sp.vocab_size()):
+            piece = sp.id_to_piece(token_id)
+            # ID 0 is the acoustic blank in this recipe.  Control, unknown,
+            # and byte pieces are not valid text decompositions here.
+            if (
+                token_id != 0
+                and not sp.is_control(token_id)
+                and not sp.is_unknown(token_id)
+                and not sp.is_byte(token_id)
+            ):
+                self._piece_to_id[piece] = token_id
+        self._split_cache = {}
+        self.num_canonical_pieces = 0
+        self.num_split_pieces = 0
+        self.num_output_pieces = 0
+        self.num_unsplittable_pieces = 0
+
+    @staticmethod
+    def visible_length(piece: str) -> int:
+        return len(piece.replace("\u2581", ""))
+
+    def _split_piece(self, piece: str):
+        cached = self._split_cache.get(piece)
+        if cached is not None:
+            return cached
+
+        n = len(piece)
+        # dp[i] is the best tuple of token IDs spelling piece[i:].
+        dp = [None] * (n + 1)
+        dp[n] = ()
+        for start in range(n - 1, -1, -1):
+            candidates = []
+            for end in range(start + 1, n + 1):
+                substring = piece[start:end]
+                if self.visible_length(substring) > self.max_visible_characters:
+                    break
+                token_id = self._piece_to_id.get(substring)
+                if token_id is None or dp[end] is None:
+                    continue
+                sequence = (token_id,) + dp[end]
+                visible_lengths = tuple(
+                    -self.visible_length(self.sp.id_to_piece(i))
+                    for i in sequence
+                )
+                candidates.append(
+                    ((len(sequence), visible_lengths, sequence), sequence)
+                )
+            if candidates:
+                dp[start] = min(candidates, key=lambda item: item[0])[1]
+
+        answer = dp[0]
+        self._split_cache[piece] = answer
+        return answer
+
+    def encode(self, text):
+        if not isinstance(text, str):
+            return [self.encode(item) for item in text]
+        canonical = list(self.sp.encode(text))
+        output = []
+        for token_id in canonical:
+            piece = self.sp.id_to_piece(token_id)
+            self.num_canonical_pieces += 1
+            if self.visible_length(piece) <= self.max_visible_characters:
+                output.append(token_id)
+                continue
+            replacement = self._split_piece(piece)
+            if replacement is None:
+                self.num_unsplittable_pieces += 1
+                output.append(token_id)
+                continue
+            self.num_split_pieces += 1
+            output.extend(replacement)
+        self.num_output_pieces += len(output)
+
+        canonical_surface = "".join(self.sp.id_to_piece(i) for i in canonical)
+        output_surface = "".join(self.sp.id_to_piece(i) for i in output)
+        if output_surface != canonical_surface:
+            raise RuntimeError(
+                "BPE decomposition changed the transcript surface: "
+                f"{canonical_surface!r} != {output_surface!r}"
+            )
+        return output
+
+
 class MDCTCGraphCompiler(object):
     """
     A graph compiler for multi-dimensional CTC decoding with token-level timing constraints.
@@ -62,6 +172,24 @@ class MDCTCGraphCompiler(object):
         sp = spm.SentencePieceProcessor() 
         sp.load(str(bpe_model_file))
         self.sp = sp
+        self.bpe_decomposer = None
+
+    def set_bpe_max_piece_characters(self, max_visible_characters: int):
+        """Select canonical BPE (0) or deterministic shorter-piece BPE."""
+        if max_visible_characters < 0:
+            raise ValueError(
+                "max_visible_characters must be non-negative, got "
+                f"{max_visible_characters}"
+            )
+        self.bpe_decomposer = (
+            DeterministicBpeDecomposer(self.sp, max_visible_characters)
+            if max_visible_characters > 0 else None
+        )
+
+    def encode(self, text):
+        if self.bpe_decomposer is None:
+            return self.sp.encode(text)
+        return self.bpe_decomposer.encode(text)
 
     @staticmethod
     def token_half_width(
@@ -101,7 +229,12 @@ class MDCTCGraphCompiler(object):
         return pairwise_width / 2
 
 
-    def build_ctc_topo(self, symbols: List[int], original=False) -> k2.Fsa:
+    def build_ctc_topo(
+        self,
+        symbols: List[int],
+        original: bool = False,
+        single_state: bool = False,
+    ) -> k2.Fsa:
         """
             Builds a CTC topology over the provided symbols only.
 
@@ -112,6 +245,17 @@ class MDCTCGraphCompiler(object):
         assert 0 not in symbols, "Symbol 0 is reserved for the blank token in CTC."
         
         symbols = list(set(symbols))
+        if single_state:
+            # Blank consumes a frame but emits epsilon.  Each token consumes
+            # one frame and emits itself.  State 0 is also final, so ordering
+            # is supplied entirely by the transcript FSA during composition.
+            arcs = ["0 0 0 0 0.0"]
+            arcs.extend(f"0 0 {s} {s} 0.0" for s in symbols)
+            # k2 requires a separate final sink; it consumes no acoustic frame.
+            arcs.append("0 1 -1 -1 0.0")
+            arcs.append("1")
+            return k2.arc_sort(k2.Fsa.from_str("\n".join(arcs), acceptor=False))
+
         arcs = []
         blank_state = 0  # Will set this properly later
         arcs.append(f"{blank_state} {blank_state} 0 0 0.0")  # self-loop with blank
@@ -185,7 +329,7 @@ class MDCTCGraphCompiler(object):
         token_half_widths = {}
         pos_sym_to_sym = {}
         seqs = []
-        for i, (s, o, l, spk) in enumerate(zip(self.sp.encode(c), offsets, lens, spks)):
+        for i, (s, o, l, spk) in enumerate(zip(self.encode(c), offsets, lens, spks)):
             if len(s) == 0:
                 continue
             samples_per_token  = l // len(s) + 1
@@ -268,7 +412,7 @@ class MDCTCGraphCompiler(object):
         token_half_widths = {}
         pos_sym_to_sym = {}
         seqs = []
-        for i, (s, o, l) in enumerate(zip(self.sp.encode(c), offsets, lens)):
+        for i, (s, o, l) in enumerate(zip(self.encode(c), offsets, lens)):
             if len(s) == 0:
                 continue
             samples_per_token  = l // len(s) + 1
@@ -312,6 +456,7 @@ class MDCTCGraphCompiler(object):
         interval_model: str = "fixed",
         max_overlaps: int = 6000, 
         original_topo: bool = False,
+        single_state_topo: bool = False,
         allow_self_overlap: bool = False,
         debug: bool = False,
     ) -> k2.Fsa:
@@ -360,7 +505,13 @@ class MDCTCGraphCompiler(object):
                 interval_model=interval_model,
                 allow_self_overlap=allow_self_overlap,
             )
-            while num_ovlps > max_overlaps: 
+            while num_ovlps > max_overlaps:
+                if collar_ == 0:
+                    raise RuntimeError(
+                        "Cannot satisfy max_overlaps="
+                        f"{max_overlaps}: graph still has {num_ovlps} "
+                        "overlaps at zero collar"
+                    )
                 collar_ = collar_ // 2
                 edge_collar_ = min(edge_collar_ // 2, collar_)
                 logging.info(f"Number of overlaps {num_ovlps} is > {max_overlaps}. Halving collar to {collar_}") 
@@ -384,9 +535,10 @@ class MDCTCGraphCompiler(object):
             ctc_topo = self.build_ctc_topo(
                 [
                     i + spk2int[s]*(self.sp.vocab_size()-1)
-                    for s, t in zip(spk, c) for i in self.sp.encode(t)
+                    for s, t in zip(spk, c) for i in self.encode(t)
                 ],
-                original=original_topo
+                original=original_topo,
+                single_state=single_state_topo,
             )
             ctc_topo = ctc_topo.to(self.device)
             fsa = fsa.to(self.device)
@@ -398,6 +550,11 @@ class MDCTCGraphCompiler(object):
                 fsa_with_self_loop,
                 treat_epsilons_specially=False,
             )
+            # intersect_dense requires its decoding graph to be arc-sorted.
+            # Composition can also leave inaccessible or non-coaccessible
+            # states, so finalize the composed graph rather than relying on
+            # properties of either input FSA.
+            graph = k2.arc_sort(k2.connect(graph))
             graphs.append(graph)
         training_graphs = k2.create_fsa_vec(graphs)
         return training_graphs
@@ -412,6 +569,8 @@ class MDCTCGraphCompiler(object):
         interval_model: str = "fixed",
         max_overlaps: int = 6000, 
         original_topo: bool = False,
+        single_state_topo: bool = False,
+        determinize: bool = False,
         debug: bool = False,
     ) -> k2.Fsa:
         """
@@ -434,6 +593,13 @@ class MDCTCGraphCompiler(object):
             :type max_overlaps: int
             :param original_topo: Which ctc topology to use
             :type original_topo: bool
+            :param determinize: determinize the token-projected transcript
+                acceptor before composing it with the CTC topology.  This
+                removes duplicate paths that emit the same token sequence.
+                It intentionally discards the segment-ID aux labels, so this
+                option is suitable for token-only training but not for an
+                alignment that needs to recover segment identity.
+            :type determinize: bool
             :return: A batched FSA (`FsaVec`) representing all input transcripts composed with a CTC topology.
             :rtype: k2.Fsa
         """
@@ -447,7 +613,13 @@ class MDCTCGraphCompiler(object):
                 c, o, l, collar=collar_, edge_collar=edge_collar_,
                 interval_model=interval_model,
             )
-            while num_ovlps > max_overlaps: 
+            while num_ovlps > max_overlaps:
+                if collar_ == 0:
+                    raise RuntimeError(
+                        "Cannot satisfy max_overlaps="
+                        f"{max_overlaps}: graph still has {num_ovlps} "
+                        "overlaps at zero collar"
+                    )
                 collar_ = collar_ // 2
                 edge_collar_ = min(edge_collar_ // 2, collar_)
                 logging.info(f"Number of overlaps {num_ovlps} is > {max_overlaps}. Halving collar to {collar_}") 
@@ -456,7 +628,25 @@ class MDCTCGraphCompiler(object):
                     interval_model=interval_model,
                 )
             
-            fsa = self.build_topo_sort_fsa(seqs, constraints, use_speaker=False, aux_labels=True)
+            fsa = self.build_topo_sort_fsa(
+                seqs, constraints, use_speaker=False, aux_labels=True
+            )
+            if determinize:
+                # The positional partial-order graph is a transducer whose
+                # aux labels identify source segments.  Once position labels
+                # have been projected to BPE IDs, the same token string can
+                # occur on several paths with different segment-ID outputs.
+                # Training scores only the input token string, so retain its
+                # union language as an acceptor and remove path multiplicity.
+                #
+                # k2 determinization is tropical-equivalent.  All transcript
+                # arc scores are zero here, so this selects one copy of every
+                # accepted token string without introducing a path prior.
+                fsa = fsa.clone()
+                del fsa.aux_labels
+                fsa = k2.arc_sort(k2.connect(fsa))
+                fsa = k2.determinize(fsa)
+                fsa = k2.arc_sort(k2.connect(fsa))
             if debug:
                 sym_str = ""
                 for sym, idx in fsa.symbols.items():
@@ -467,9 +657,10 @@ class MDCTCGraphCompiler(object):
                 fsa.draw("test_fsa.svg")
             ctc_topo = self.build_ctc_topo(
                 [
-                    i for t in c for i in self.sp.encode(t)
+                    i for t in c for i in self.encode(t)
                 ],
-                original=original_topo
+                original=original_topo,
+                single_state=single_state_topo,
             )
             ctc_topo = ctc_topo.to(self.device)
             fsa = fsa.to(self.device)
@@ -481,9 +672,152 @@ class MDCTCGraphCompiler(object):
                 fsa_with_self_loop,
                 treat_epsilons_specially=False,
             )
+            graph = k2.arc_sort(k2.connect(graph))
             graphs.append(graph)
         training_graphs = k2.create_fsa_vec(graphs)
         return training_graphs
+
+    def compile_latent_speaker(
+        self,
+        cuts: List[List[str]],
+        offsets,
+        lens,
+        num_speakers: List[int],
+        collar: int = 64000,
+        edge_collar: Optional[int] = None,
+        interval_model: str = "fixed",
+        max_overlaps: int = 6000,
+        original_topo: bool = False,
+        max_graph_states: int = 2_000_000,
+    ) -> k2.Fsa:
+        """Compile a shuffle graph with one latent speaker per segment.
+
+        Speaker identity is remembered only while a segment is active.  Thus
+        graph growth depends on simultaneous partially emitted segments, not
+        on the total number of segments in the recording.
+        """
+        graphs = []
+        for c, o, l, nspk in zip(cuts, offsets, lens, num_speakers):
+            if nspk < 1:
+                raise ValueError(f"num_speakers must be positive, got {nspk}")
+            collar_ = collar
+            edge_collar_ = collar if edge_collar is None else edge_collar
+            seqs, constraints, num_ovlps, _ = self.get_seqs_and_constraints_no_spk(
+                c, o, l, collar=collar_, edge_collar=edge_collar_,
+                interval_model=interval_model,
+            )
+            while num_ovlps > max_overlaps:
+                if collar_ == 0:
+                    raise RuntimeError(
+                        f"Cannot satisfy max_overlaps={max_overlaps}: graph "
+                        f"still has {num_ovlps} overlaps at zero collar"
+                    )
+                collar_ //= 2
+                edge_collar_ = min(edge_collar_ // 2, collar_)
+                seqs, constraints, num_ovlps, _ = self.get_seqs_and_constraints_no_spk(
+                    c, o, l, collar=collar_, edge_collar=edge_collar_,
+                    interval_model=interval_model,
+                )
+
+            fsa = self.build_topo_sort_fsa_latent_speaker(
+                seqs, constraints, nspk,
+                max_graph_states=max_graph_states,
+            )
+            symbols = [
+                token + speaker * (self.sp.vocab_size() - 1)
+                for text in c
+                for token in self.encode(text)
+                for speaker in range(nspk)
+            ]
+            ctc_topo = self.build_ctc_topo(symbols, original=original_topo)
+            fsa = k2.arc_sort(k2.connect(
+                k2.remove_epsilon_and_add_self_loops(fsa.to(self.device))
+            ))
+            graph = k2.compose(
+                ctc_topo.to(self.device), fsa,
+                treat_epsilons_specially=False,
+            )
+            graph = k2.arc_sort(k2.connect(graph))
+            graphs.append(graph)
+        return k2.create_fsa_vec(graphs)
+
+    def build_topo_sort_fsa_latent_speaker(
+        self,
+        sequences: List[Tuple],
+        extra_constraints: List[Tuple],
+        num_speakers: int,
+        max_graph_states: int = 2_000_000,
+    ) -> k2.Fsa:
+        """Build a partial-order FST with a consistent latent segment speaker."""
+        symbols = sorted({s for seq in sequences for s in seq})
+        sym2index = {s: i for i, s in enumerate(symbols)}
+        n_symbols = len(symbols)
+        preds = defaultdict(set)
+        for seq in sequences:
+            for u, v in zip(seq, seq[1:]):
+                preds[v].add(u)
+        for u, v in extra_constraints:
+            preds[v].add(u)
+        pred_bits = []
+        for sym in symbols:
+            bits = 0
+            for pred in preds[sym]:
+                bits |= 1 << sym2index[pred]
+            pred_bits.append(bits)
+
+        # Positional no-speaker symbols are (token, token_index, segment_index).
+        last_symbol_by_segment = {seq[-1][2]: seq[-1] for seq in sequences if seq}
+        initial_assignments = tuple([-1] * (
+            max(last_symbol_by_segment, default=-1) + 1
+        ))
+        initial = (0, initial_assignments)
+        state_map = {initial: 0}
+        queue = deque([initial])
+        transitions = []
+        all_emitted = (1 << n_symbols) - 1
+
+        while queue:
+            emitted, assignments = queue.popleft()
+            src = state_map[(emitted, assignments)]
+            if emitted == all_emitted:
+                continue
+            for index, sym in enumerate(symbols):
+                bit = 1 << index
+                if emitted & bit or (emitted & pred_bits[index]) != pred_bits[index]:
+                    continue
+                token, _, segment = sym
+                assigned = assignments[segment]
+                choices = range(num_speakers) if assigned < 0 else (assigned,)
+                for speaker in choices:
+                    new_assignments = list(assignments)
+                    new_assignments[segment] = speaker
+                    if sym == last_symbol_by_segment[segment]:
+                        new_assignments[segment] = -1
+                    dest_key = (emitted | bit, tuple(new_assignments))
+                    if dest_key not in state_map:
+                        if len(state_map) >= max_graph_states:
+                            raise RuntimeError(
+                                "Latent-speaker graph exceeded max_graph_states="
+                                f"{max_graph_states}"
+                            )
+                        state_map[dest_key] = len(state_map)
+                        queue.append(dest_key)
+                    joint_label = token + speaker * (self.sp.vocab_size() - 1)
+                    transitions.append(
+                        (src, state_map[dest_key], joint_label, segment + 1, 0.0)
+                    )
+
+        final_key = (all_emitted, initial_assignments)
+        if final_key not in state_map:
+            raise RuntimeError("Latent-speaker graph has no final state")
+        final_state = len(state_map)
+        lines = [
+            f"{src} {dest} {label} {aux} {score}"
+            for src, dest, label, aux, score in transitions
+        ]
+        lines.append(f"{state_map[final_key]} {final_state} -1 -1 0.0")
+        lines.append(str(final_state))
+        return k2.Fsa.from_str("\n".join(lines), acceptor=False)
 
     def compile_transcript(
         self,
@@ -524,7 +858,13 @@ class MDCTCGraphCompiler(object):
                 c, o, l, collar=collar_, edge_collar=edge_collar_,
                 interval_model=interval_model,
             )
-            while num_ovlps > max_overlaps: 
+            while num_ovlps > max_overlaps:
+                if collar_ == 0:
+                    raise RuntimeError(
+                        "Cannot satisfy max_overlaps="
+                        f"{max_overlaps}: graph still has {num_ovlps} "
+                        "overlaps at zero collar"
+                    )
                 collar_ = collar_ // 2
                 edge_collar_ = min(edge_collar_ // 2, collar_)
                 logging.info(f"Number of overlaps {num_ovlps} is > {max_overlaps}. Halving collar to {collar_}") 

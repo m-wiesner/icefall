@@ -706,7 +706,9 @@ def compute_loss(
                 hyps_ = {}
                 preds_no_repeats = preds[i].unique_consecutive()
                 preds_no_repeats_or_blanks = preds_no_repeats[preds_no_repeats != 0].squeeze()
-                units = preds_no_repeats_or_blanks.remainder((params.vocab_size - 1))
+                # This model emits SentencePiece IDs directly; there is no
+                # speaker block to undo.
+                units = preds_no_repeats_or_blanks
                 s_units = units.tolist()
                 hyps_[0] = s_units
                 hyps.append(hyps_)
